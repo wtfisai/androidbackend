@@ -6,6 +6,7 @@ const os = require('os');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
+const { getDeviceProperties } = require('./utils/command-helpers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -110,42 +111,11 @@ app.get('/api/system', authenticate, async (req, res) => {
 
 // Device properties endpoint
 app.get('/api/device/properties', authenticate, (req, res) => {
-  exec('getprop 2>/dev/null || echo "getprop command not available"', { shell: true }, (error, stdout, stderr) => {
+  getDeviceProperties((error, properties) => {
     if (error) {
       return res.status(500).json({ error: error.message });
     }
-    
-    if (stdout.includes('not available')) {
-      return res.json({
-        androidVersion: 'N/A',
-        sdkVersion: 'N/A',
-        device: 'Termux',
-        model: 'Android Device',
-        manufacturer: 'Unknown',
-        buildId: 'N/A',
-        buildDate: new Date().toISOString(),
-        properties: {}
-      });
-    }
-    
-    const properties = {};
-    stdout.split('\n').forEach(line => {
-      const match = line.match(/\[(.*?)\]: \[(.*?)\]/);
-      if (match) {
-        properties[match[1]] = match[2];
-      }
-    });
-    
-    res.json({
-      androidVersion: properties['ro.build.version.release'],
-      sdkVersion: properties['ro.build.version.sdk'],
-      device: properties['ro.product.device'],
-      model: properties['ro.product.model'],
-      manufacturer: properties['ro.product.manufacturer'],
-      buildId: properties['ro.build.id'],
-      buildDate: properties['ro.build.date'],
-      properties: properties
-    });
+    res.json(properties);
   });
 });
 
@@ -442,25 +412,27 @@ app.get('/api/packages/:packageName', authenticate, (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`
-╔════════════════════════════════════════════════════════════╗
-║       Android Remote Diagnostic API Server Started        ║
-╠════════════════════════════════════════════════════════════╣
-║                                                            ║
-║  Server running on: http://0.0.0.0:${PORT}                    ║
-║                                                            ║
-║  API Key: ${API_KEY.substring(0, 20)}...                         ║
-║                                                            ║
-║  Save this API key to connect from Windows 11!            ║
-║                                                            ║
-║  To find your device IP for remote connection:            ║
-║  Run: ip addr show wlan0                                  ║
-║                                                            ║
-╚════════════════════════════════════════════════════════════╝
-  `);
-});
+// Start server if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`
+  ╔════════════════════════════════════════════════════════════╗
+  ║       Android Remote Diagnostic API Server Started        ║
+  ╠════════════════════════════════════════════════════════════╣
+  ║                                                            ║
+  ║  Server running on: http://0.0.0.0:${PORT}                    ║
+  ║                                                            ║
+  ║  API Key: ${API_KEY.substring(0, 20)}...                         ║
+  ║                                                            ║
+  ║  Save this API key to connect from Windows 11!            ║
+  ║                                                            ║
+  ║  To find your device IP for remote connection:            ║
+  ║  Run: ip addr show wlan0                                  ║
+  ║                                                            ║
+  ╚════════════════════════════════════════════════════════════╝
+    `);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
@@ -472,3 +444,5 @@ process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully...');
   process.exit(0);
 });
+
+module.exports = app;
