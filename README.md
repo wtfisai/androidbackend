@@ -96,11 +96,81 @@ sv-enable diagnostic-api
 - Termux environment
 - Android Debug Bridge (ADB)
 
+## Docker Deployment
+
+### Quick Start with Docker
+
+```bash
+# Build the image
+docker build -t android-diagnostic-api .
+
+# Run the container
+docker run -d -p 3000:3000 --name android-api android-diagnostic-api
+
+# Or use docker-compose
+docker-compose up -d
+```
+
+### Docker Compose Setup
+
+The project includes several Docker Compose configurations:
+
+- `docker-compose.yml` - Production setup with Nginx and Redis
+- `docker-compose.dev.yml` - Development setup with hot reload
+
+```bash
+# Production deployment
+docker-compose up -d
+
+# Development mode
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Environment Variables for Docker
+
+Create a `.env` file for Docker deployment:
+
+```env
+API_KEY=your-secure-api-key
+PORT=3000
+NODE_ENV=production
+ALLOWED_ORIGINS=http://localhost:3000,http://your-domain.com
+```
+
+### Docker Hub
+
+Pull the pre-built image (when available):
+
+```bash
+docker pull yourusername/android-diagnostic-api:latest
+```
+
+### Kubernetes Deployment
+
+For Kubernetes deployment, use the included manifests:
+
+```bash
+kubectl apply -f k8s/
+```
+
 ## Requirements
 
+### For Termux Installation
 - Android device with Termux
 - Node.js 18+ 
 - Network connection
+
+### For Docker
+- Docker Engine 20.10+
+- Docker Compose 2.0+ (optional)
+- 512MB RAM minimum
+- 100MB disk space
 
 ## License
 

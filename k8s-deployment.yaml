@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: android-api
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: android-api-secret
+  namespace: android-api
+type: Opaque
+data:
+  api-key: ZGlhZ25vc3RpYy1hcGkta2V5LTIwMjQ= # base64 encoded
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: android-api-config
+  namespace: android-api
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  ALLOWED_ORIGINS: "*"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: android-diagnostic-api
+  namespace: android-api
+  labels:
+    app: android-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: android-api
+  template:
+    metadata:
+      labels:
+        app: android-api
+    spec:
+      containers:
+      - name: android-api
+        image: android-diagnostic-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: android-api-secret
+              key: api-key
+        envFrom:
+        - configMapRef:
+            name: android-api-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: android-api-service
+  namespace: android-api
+spec:
+  selector:
+    app: android-api
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: android-api-hpa
+  namespace: android-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: android-diagnostic-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: android-api-ingress
+  namespace: android-api
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: api.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: android-api-service
+            port:
+              number: 80

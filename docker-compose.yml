@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  android-api:
+    build: .
+    image: android-diagnostic-api:latest
+    container_name: android-diagnostic-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - API_KEY=${API_KEY:-diagnostic-api-key-2024}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    volumes:
+      # Mount logs directory
+      - ./logs:/app/logs
+      # Mount for persistent data (optional)
+      - api-data:/app/data
+    networks:
+      - diagnostic-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.android-api.rule=Host(`api.localhost`)"
+      - "traefik.http.services.android-api.loadbalancer.server.port=3000"
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: android-api-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - android-api
+    networks:
+      - diagnostic-net
+
+  # Optional: Redis for caching/sessions
+  redis:
+    image: redis:7-alpine
+    container_name: android-api-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - diagnostic-net
+    command: redis-server --appendonly yes
+
+volumes:
+  api-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  diagnostic-net:
+    driver: bridge

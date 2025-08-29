@@ -1,0 +1,35 @@
+# Development Dockerfile with hot reload support
+FROM node:20-alpine
+
+# Install development dependencies
+RUN apk add --no-cache \
+    bash \
+    curl \
+    net-tools \
+    procps \
+    iputils \
+    busybox-extras
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including devDependencies)
+RUN npm install
+
+# Install nodemon globally for hot reload
+RUN npm install -g nodemon
+
+# Copy application files
+COPY . .
+
+# Environment variables
+ENV NODE_ENV=development \
+    PORT=3000 \
+    API_KEY=diagnostic-api-key-2024
+
+EXPOSE 3000
+
+# Use nodemon for development
+CMD ["nodemon", "--watch", ".", "--ext", "js,json", "--ignore", "node_modules/", "server.js"]
