@@ -1,6 +1,6 @@
 const config = require('../config');
 
-const authenticate = (req, res, next) => {
+const authenticateApiKey = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
 
   if (!apiKey || apiKey !== config.apiKey) {
@@ -13,4 +13,8 @@ const authenticate = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate };
+// Export both names for compatibility
+module.exports = { 
+  authenticate: authenticateApiKey,
+  authenticateApiKey 
+};

@@ -13,12 +13,24 @@ router.get(
   '/system',
   authenticate,
   asyncHandler(async (req, res) => {
+    // Get CPU count - os.cpus() returns empty array on Android/Termux
+    let cpuCount = os.cpus().length;
+    if (cpuCount === 0) {
+      // Fallback for Android/Termux
+      try {
+        const { stdout } = await execAsync('nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo 2>/dev/null || echo "8"');
+        cpuCount = parseInt(stdout.trim()) || 8;
+      } catch {
+        cpuCount = 8; // Default fallback
+      }
+    }
+
     const systemInfo = {
       hostname: os.hostname(),
       platform: os.platform(),
       arch: os.arch(),
       release: os.release(),
-      cpus: os.cpus().length,
+      cpus: cpuCount,
       totalMemory: os.totalmem(),
       freeMemory: os.freemem(),
       uptime: os.uptime(),

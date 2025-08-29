@@ -5,12 +5,17 @@ const path = require('path');
 const config = require('./config');
 const { rateLimit } = require('./middleware/rateLimit');
 const { errorHandler } = require('./middleware/errorHandler');
+const { activityTracker } = require('./middleware/activityTracker');
 
 // Import routes
 const systemRoutes = require('./routes/system');
 const deviceRoutes = require('./routes/device');
 const commandRoutes = require('./routes/commands');
 const packageRoutes = require('./routes/packages');
+const optimizationRoutes = require('./routes/optimization');
+const diagnosticsRoutes = require('./routes/diagnostics');
+const debugRoutes = require('./routes/debug');
+const dashboardRoutes = require('./routes/dashboard');
 
 // Create Express app
 const app = express();
@@ -34,6 +39,9 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting
 app.use(rateLimit);
+
+// Activity tracking (after rate limiting, before routes)
+app.use(activityTracker);
 
 // Health check endpoint (no auth required)
 app.get('/health', (req, res) => {
@@ -61,7 +69,41 @@ app.get('/api/info', (req, res) => {
       device: 'GET /api/device/*',
       packages: 'GET /api/packages/*',
       commands: 'POST /api/shell, POST /api/adb/execute',
-      logs: 'GET /api/logcat'
+      logs: 'GET /api/logcat',
+      optimization: {
+        processSleep: 'PUT /api/optimize/process/:pid/sleep',
+        processWake: 'PUT /api/optimize/process/:pid/wake',
+        batchOptimize: 'POST /api/optimize/batch',
+        suggestions: 'GET /api/optimize/suggestions',
+        memoryClean: 'POST /api/optimize/memory/clean',
+        history: 'GET /api/optimize/history'
+      },
+      diagnostics: {
+        connectivity: 'POST /api/diagnostics/connectivity',
+        traceroute: 'POST /api/diagnostics/traceroute',
+        portScan: 'POST /api/diagnostics/port-scan',
+        bandwidth: 'GET /api/diagnostics/bandwidth',
+        wifiScan: 'POST /api/diagnostics/wifi/scan',
+        speedTest: 'GET /api/diagnostics/speed-test'
+      },
+      debug: {
+        startSession: 'POST /api/debug/start',
+        stopSession: 'POST /api/debug/stop',
+        getSession: 'GET /api/debug/session/:sessionId',
+        listSessions: 'GET /api/debug/sessions',
+        addTrace: 'POST /api/debug/trace',
+        attachGdb: 'POST /api/debug/attach-gdb',
+        logcat: 'GET /api/debug/logcat',
+        heapDump: 'POST /api/debug/heap-dump'
+      },
+      dashboard: {
+        overview: 'GET /api/dashboard/overview',
+        activities: 'GET /api/dashboard/activities',
+        processes: 'GET /api/dashboard/processes',
+        debugSessions: 'GET /api/dashboard/debug-sessions',
+        optimizationStats: 'GET /api/dashboard/optimization-stats',
+        alerts: 'GET /api/dashboard/alerts'
+      }
     }
   });
 });
@@ -71,6 +113,10 @@ app.use('/api', systemRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api', commandRoutes);
+app.use('/api/optimize', optimizationRoutes);
+app.use('/api/diagnostics', diagnosticsRoutes);
+app.use('/api/debug', debugRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 handler
 app.use((req, res) => {

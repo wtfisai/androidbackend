@@ -40,7 +40,7 @@ describe('API Endpoints', () => {
           'ro.product.model': 'sdk_gphone_x86',
           'ro.product.manufacturer': 'Google',
           'ro.build.id': 'RSR1.200819.001',
-          'ro.build.date': 'Thu Aug 20 00:00:00 UTC 2020',
+          'ro.build.date': 'Thu Aug 20 00:00:00 UTC 2020'
         }
       });
     });
