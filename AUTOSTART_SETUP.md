@@ -3,6 +3,7 @@
 ## Method 1: Termux:Boot (Recommended)
 
 ### Install Termux:Boot
+
 1. **Install from F-Droid**:
    - Open F-Droid app
    - Search for "Termux:Boot"
@@ -24,16 +25,19 @@
 ## Method 2: Using Termux-services (for Termux session)
 
 Enable the service:
+
 ```bash
 sv-enable diagnostic-api
 ```
 
 Check service status:
+
 ```bash
 sv status diagnostic-api
 ```
 
 Start/stop manually:
+
 ```bash
 sv up diagnostic-api    # Start
 sv down diagnostic-api  # Stop
@@ -53,6 +57,7 @@ fi
 ## Method 4: Using Tasker (Advanced)
 
 If you have Tasker installed:
+
 1. Create a new Profile: Event > System > Device Boot
 2. Add Task: Plugin > Termux > Run Command
 3. Command: `cd ~/project && npm start`
@@ -60,21 +65,25 @@ If you have Tasker installed:
 ## Quick Management Commands
 
 ### Check if running:
+
 ```bash
 pgrep -f "node server.js"
 ```
 
 ### View logs:
+
 ```bash
 tail -f ~/diagnostic-api.log
 ```
 
 ### Stop the server:
+
 ```bash
 pkill -f "node server.js"
 ```
 
 ### Manual start:
+
 ```bash
 cd ~/project && npm start
 ```
@@ -82,6 +91,7 @@ cd ~/project && npm start
 ## Verify Auto-start is Working
 
 After setting up Termux:Boot:
+
 1. Restart your Android device
 2. Wait 30 seconds after boot
 3. Open any browser
@@ -104,11 +114,13 @@ If server doesn't start on boot:
    - Enable for Termux:Boot
 
 2. **Check boot script exists**:
+
    ```bash
    ls -la ~/.termux/boot/
    ```
 
 3. **Test boot script manually**:
+
    ```bash
    ~/.termux/boot/start-diagnostic-api.sh
    ```
@@ -119,5 +131,6 @@ If server doesn't start on boot:
    ```
 
 ## Current API Key
+
 Your API key (saved in .env):
 Check with: `grep API_KEY ~/project/.env`

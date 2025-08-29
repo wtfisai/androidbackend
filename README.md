@@ -19,18 +19,21 @@ A comprehensive REST API server for remotely monitoring and managing Android dev
 
 1. Install Termux from F-Droid
 2. Clone this repository:
+
 ```bash
 git clone https://github.com/yourusername/androidbackend.git
 cd androidbackend
 ```
 
 3. Run the installer:
+
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
 4. Start the server:
+
 ```bash
 npm start
 ```
@@ -45,10 +48,12 @@ Default API Key: `diagnostic-api-key-2024`
 ## API Endpoints
 
 ### Public Endpoints
+
 - `GET /health` - Server health check
 - `GET /api/info` - API information and key
 
 ### Authenticated Endpoints
+
 All authenticated endpoints require `x-api-key` header.
 
 - `GET /api/system` - System information
@@ -73,11 +78,13 @@ Use the included PowerShell client for Windows:
 ## Auto-Start Setup
 
 ### Method 1: Termux:Boot
+
 1. Install Termux:Boot from F-Droid
 2. Grant startup permission in Android settings
 3. Server starts automatically on boot
 
 ### Method 2: Termux Services
+
 ```bash
 sv-enable diagnostic-api
 ```
@@ -162,11 +169,13 @@ kubectl apply -f k8s/
 ## Requirements
 
 ### For Termux Installation
+
 - Android device with Termux
-- Node.js 18+ 
+- Node.js 18+
 - Network connection
 
 ### For Docker
+
 - Docker Engine 20.10+
 - Docker Compose 2.0+ (optional)
 - 512MB RAM minimum

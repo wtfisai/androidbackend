@@ -11,12 +11,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware - CORS first to handle preflight requests
-app.use(cors({
-  origin: '*',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-api-key']
-}));
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-api-key']
+  })
+);
 
 // Serve static files from public directory
 app.use(express.static('public'));
@@ -45,12 +47,12 @@ const rateLimit = (req, res, next) => {
   const now = Date.now();
   const windowMs = 60000; // 1 minute
   const maxRequests = 100;
-  
+
   if (!requestCounts.has(ip)) {
     requestCounts.set(ip, { count: 1, resetTime: now + windowMs });
     return next();
   }
-  
+
   const requestData = requestCounts.get(ip);
   if (now > requestData.resetTime) {
     requestData.count = 1;
@@ -68,7 +70,7 @@ app.use(rateLimit);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'online',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
@@ -101,7 +103,7 @@ app.get('/api/system', authenticate, async (req, res) => {
       loadAverage: os.loadavg(),
       networkInterfaces: os.networkInterfaces()
     };
-    
+
     res.json(systemInfo);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -110,88 +112,96 @@ app.get('/api/system', authenticate, async (req, res) => {
 
 // Device properties endpoint
 app.get('/api/device/properties', authenticate, (req, res) => {
-  exec('getprop 2>/dev/null || echo "getprop command not available"', { shell: true }, (error, stdout, stderr) => {
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-    
-    if (stdout.includes('not available')) {
-      return res.json({
-        androidVersion: 'N/A',
-        sdkVersion: 'N/A',
-        device: 'Termux',
-        model: 'Android Device',
-        manufacturer: 'Unknown',
-        buildId: 'N/A',
-        buildDate: new Date().toISOString(),
-        properties: {}
+  exec(
+    'getprop 2>/dev/null || echo "getprop command not available"',
+    { shell: true },
+    (error, stdout, stderr) => {
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+
+      if (stdout.includes('not available')) {
+        return res.json({
+          androidVersion: 'N/A',
+          sdkVersion: 'N/A',
+          device: 'Termux',
+          model: 'Android Device',
+          manufacturer: 'Unknown',
+          buildId: 'N/A',
+          buildDate: new Date().toISOString(),
+          properties: {}
+        });
+      }
+
+      const properties = {};
+      stdout.split('\n').forEach((line) => {
+        const match = line.match(/\[(.*?)\]: \[(.*?)\]/);
+        if (match) {
+          properties[match[1]] = match[2];
+        }
+      });
+
+      res.json({
+        androidVersion: properties['ro.build.version.release'],
+        sdkVersion: properties['ro.build.version.sdk'],
+        device: properties['ro.product.device'],
+        model: properties['ro.product.model'],
+        manufacturer: properties['ro.product.manufacturer'],
+        buildId: properties['ro.build.id'],
+        buildDate: properties['ro.build.date'],
+        properties: properties
       });
     }
-    
-    const properties = {};
-    stdout.split('\n').forEach(line => {
-      const match = line.match(/\[(.*?)\]: \[(.*?)\]/);
-      if (match) {
-        properties[match[1]] = match[2];
-      }
-    });
-    
-    res.json({
-      androidVersion: properties['ro.build.version.release'],
-      sdkVersion: properties['ro.build.version.sdk'],
-      device: properties['ro.product.device'],
-      model: properties['ro.product.model'],
-      manufacturer: properties['ro.product.manufacturer'],
-      buildId: properties['ro.build.id'],
-      buildDate: properties['ro.build.date'],
-      properties: properties
-    });
-  });
+  );
 });
 
 // Battery status endpoint
 app.get('/api/device/battery', authenticate, (req, res) => {
-  exec('dumpsys battery 2>/dev/null || termux-battery-status 2>/dev/null || echo "{}"', { shell: true }, (error, stdout, stderr) => {
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-    
-    // Try to parse as JSON first (termux-battery-status)
-    try {
-      const termuxBattery = JSON.parse(stdout);
-      if (termuxBattery.percentage !== undefined) {
+  exec(
+    'dumpsys battery 2>/dev/null || termux-battery-status 2>/dev/null || echo "{}"',
+    { shell: true },
+    (error, stdout, stderr) => {
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+
+      // Try to parse as JSON first (termux-battery-status)
+      try {
+        const termuxBattery = JSON.parse(stdout);
+        if (termuxBattery.percentage !== undefined) {
+          return res.json({
+            level: termuxBattery.percentage,
+            status: termuxBattery.status,
+            health: termuxBattery.health,
+            temperature: termuxBattery.temperature,
+            plugged: termuxBattery.plugged
+          });
+        }
+      } catch (e) {
+        // Not JSON, try dumpsys format
+      }
+
+      const battery = {};
+      stdout.split('\n').forEach((line) => {
+        const match = line.trim().match(/^(\w+):\s*(.+)$/);
+        if (match) {
+          battery[match[1]] = match[2];
+        }
+      });
+
+      // If no battery info found, return mock data
+      if (Object.keys(battery).length === 0) {
         return res.json({
-          level: termuxBattery.percentage,
-          status: termuxBattery.status,
-          health: termuxBattery.health,
-          temperature: termuxBattery.temperature,
-          plugged: termuxBattery.plugged
+          level: Math.floor(Math.random() * 40 + 60),
+          status: 'Unknown',
+          health: 'Good',
+          temperature: '25°C'
         });
       }
-    } catch (e) {
-      // Not JSON, try dumpsys format
+
+      res.json(battery);
     }
-    
-    const battery = {};
-    stdout.split('\n').forEach(line => {
-      const match = line.trim().match(/^(\w+):\s*(.+)$/);
-      if (match) {
-        battery[match[1]] = match[2];
-      }
-    });
-    
-    // If no battery info found, return mock data
-    if (Object.keys(battery).length === 0) {
-      return res.json({
-        level: Math.floor(Math.random() * 40 + 60),
-        status: 'Unknown',
-        health: 'Good',
-        temperature: '25°C'
-      });
-    }
-    
-    res.json(battery);
-  });
+  );
 });
 
 // Network status endpoint
@@ -200,15 +210,17 @@ app.get('/api/device/network', authenticate, (req, res) => {
     if (error) {
       return res.status(500).json({ error: error.message });
     }
-    
+
     const interfaces = [];
     const lines = stdout.split('\n');
     let currentInterface = null;
-    
-    lines.forEach(line => {
+
+    lines.forEach((line) => {
       const ifaceMatch = line.match(/^\d+:\s+(\w+):/);
       if (ifaceMatch) {
-        if (currentInterface) interfaces.push(currentInterface);
+        if (currentInterface) {
+          interfaces.push(currentInterface);
+        }
         currentInterface = { name: ifaceMatch[1], addresses: [] };
       } else if (currentInterface) {
         const addrMatch = line.match(/inet\s+(\d+\.\d+\.\d+\.\d+\/\d+)/);
@@ -217,8 +229,10 @@ app.get('/api/device/network', authenticate, (req, res) => {
         }
       }
     });
-    if (currentInterface) interfaces.push(currentInterface);
-    
+    if (currentInterface) {
+      interfaces.push(currentInterface);
+    }
+
     res.json({ interfaces });
   });
 });
@@ -232,35 +246,39 @@ app.get('/api/processes', authenticate, (req, res) => {
         if (error2) {
           return res.status(500).json({ error: 'Failed to get process list' });
         }
-        
+
         const lines = stdout2.split('\n').slice(1);
-        const processes = lines.map(line => {
-          const parts = line.trim().split(/\s+/);
-          return {
-            user: parts[0],
-            pid: parts[1],
-            ppid: parts[2],
-            name: parts[parts.length - 1]
-          };
-        }).filter(p => p.pid);
-        
+        const processes = lines
+          .map((line) => {
+            const parts = line.trim().split(/\s+/);
+            return {
+              user: parts[0],
+              pid: parts[1],
+              ppid: parts[2],
+              name: parts[parts.length - 1]
+            };
+          })
+          .filter((p) => p.pid);
+
         res.json({ processes, count: processes.length });
       });
       return;
     }
-    
+
     const lines = stdout.split('\n').slice(1);
-    const processes = lines.map(line => {
-      const parts = line.trim().split(/\s+/);
-      return {
-        user: parts[0],
-        pid: parts[1],
-        cpu: parts[2],
-        mem: parts[3],
-        command: parts.slice(10).join(' ')
-      };
-    }).filter(p => p.pid);
-    
+    const processes = lines
+      .map((line) => {
+        const parts = line.trim().split(/\s+/);
+        return {
+          user: parts[0],
+          pid: parts[1],
+          cpu: parts[2],
+          mem: parts[3],
+          command: parts.slice(10).join(' ')
+        };
+      })
+      .filter((p) => p.pid);
+
     res.json({ processes, count: processes.length });
   });
 });
@@ -271,23 +289,25 @@ app.get('/api/storage', authenticate, (req, res) => {
     if (error) {
       return res.status(500).json({ error: error.message });
     }
-    
+
     const lines = stdout.split('\n').slice(1);
-    const storage = lines.map(line => {
-      const parts = line.trim().split(/\s+/);
-      if (parts.length >= 6) {
-        return {
-          filesystem: parts[0],
-          size: parts[1],
-          used: parts[2],
-          available: parts[3],
-          usePercent: parts[4],
-          mounted: parts[5]
-        };
-      }
-      return null;
-    }).filter(Boolean);
-    
+    const storage = lines
+      .map((line) => {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 6) {
+          return {
+            filesystem: parts[0],
+            size: parts[1],
+            used: parts[2],
+            available: parts[3],
+            usePercent: parts[4],
+            mounted: parts[5]
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
     res.json({ storage });
   });
 });
@@ -309,32 +329,32 @@ const SAFE_ADB_COMMANDS = [
 
 app.post('/api/adb/execute', authenticate, (req, res) => {
   const { command } = req.body;
-  
+
   if (!command) {
     return res.status(400).json({ error: 'Command is required' });
   }
-  
+
   // Check if command is safe
-  const isSafe = SAFE_ADB_COMMANDS.some(safeCmd => 
-    command.startsWith(safeCmd) || command === safeCmd
+  const isSafe = SAFE_ADB_COMMANDS.some(
+    (safeCmd) => command.startsWith(safeCmd) || command === safeCmd
   );
-  
+
   if (!isSafe && !req.body.force) {
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Command not in whitelist. Use force:true to override (dangerous!)',
       whitelisted: SAFE_ADB_COMMANDS
     });
   }
-  
+
   exec(`adb ${command}`, { maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
     if (error) {
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: error.message,
         stderr: stderr,
         command: command
       });
     }
-    
+
     res.json({
       output: stdout,
       stderr: stderr,
@@ -347,16 +367,14 @@ app.post('/api/adb/execute', authenticate, (req, res) => {
 // Logcat streaming endpoint
 app.get('/api/logcat', authenticate, (req, res) => {
   const { lines = 100, filter = '' } = req.query;
-  
-  const command = filter 
-    ? `logcat -d -t ${lines} ${filter}`
-    : `logcat -d -t ${lines}`;
-    
+
+  const command = filter ? `logcat -d -t ${lines} ${filter}` : `logcat -d -t ${lines}`;
+
   exec(command, { maxBuffer: 5 * 1024 * 1024 }, (error, stdout, stderr) => {
     if (error) {
       return res.status(500).json({ error: error.message });
     }
-    
+
     res.json({
       logs: stdout.split('\n'),
       count: stdout.split('\n').length,
@@ -369,34 +387,26 @@ app.get('/api/logcat', authenticate, (req, res) => {
 // Execute shell command (restricted)
 app.post('/api/shell', authenticate, (req, res) => {
   const { command } = req.body;
-  
+
   if (!command) {
     return res.status(400).json({ error: 'Command is required' });
   }
-  
+
   // Basic command filtering
-  const dangerousPatterns = [
-    /rm\s+-rf/,
-    /mkfs/,
-    /dd\s+if=/,
-    /format/,
-    />\/dev\//,
-    /sudo/,
-    /su\s/
-  ];
-  
-  if (dangerousPatterns.some(pattern => pattern.test(command))) {
+  const dangerousPatterns = [/rm\s+-rf/, /mkfs/, /dd\s+if=/, /format/, />\/dev\//, /sudo/, /su\s/];
+
+  if (dangerousPatterns.some((pattern) => pattern.test(command))) {
     return res.status(403).json({ error: 'Potentially dangerous command blocked' });
   }
-  
+
   exec(command, { timeout: 30000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
     if (error) {
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: error.message,
         stderr: stderr
       });
     }
-    
+
     res.json({
       output: stdout,
       stderr: stderr,
@@ -412,13 +422,14 @@ app.get('/api/packages', authenticate, (req, res) => {
     if (error) {
       return res.status(500).json({ error: error.message });
     }
-    
-    const packages = stdout.split('\n')
-      .filter(line => line.startsWith('package:'))
-      .map(line => line.replace('package:', '').trim())
+
+    const packages = stdout
+      .split('\n')
+      .filter((line) => line.startsWith('package:'))
+      .map((line) => line.replace('package:', '').trim())
       .sort();
-    
-    res.json({ 
+
+    res.json({
       packages,
       count: packages.length
     });
@@ -428,12 +439,12 @@ app.get('/api/packages', authenticate, (req, res) => {
 // Get package info
 app.get('/api/packages/:packageName', authenticate, (req, res) => {
   const { packageName } = req.params;
-  
+
   exec(`dumpsys package ${packageName}`, (error, stdout, stderr) => {
     if (error) {
       return res.status(500).json({ error: error.message });
     }
-    
+
     res.json({
       packageName,
       info: stdout,

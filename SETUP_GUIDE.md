@@ -1,12 +1,14 @@
 # Android Remote Diagnostic API - Setup Guide
 
 ## Overview
+
 This API server allows you to remotely monitor, diagnose, and control your Android device from Windows 11 or any other computer.
 
 ## Prerequisites on Android (Termux)
 
 1. **Install Termux** from F-Droid (recommended) or GitHub
 2. **Install required packages**:
+
 ```bash
 pkg update && pkg upgrade
 pkg install nodejs npm
@@ -22,22 +24,26 @@ pkg install net-tools      # For network utilities
 ## Setup on Android
 
 1. **Navigate to project directory**:
+
 ```bash
 cd /data/data/com.termux/files/home/project
 ```
 
 2. **Install Node dependencies**:
+
 ```bash
 npm install
 ```
 
 3. **Configure environment** (optional):
+
 ```bash
 cp .env.example .env
 nano .env  # Edit with your preferred settings
 ```
 
 4. **Start the server**:
+
 ```bash
 npm start
 ```
@@ -45,6 +51,7 @@ npm start
 5. **Note the API key** displayed when server starts - you'll need this for Windows connection!
 
 6. **Find your Android device IP**:
+
 ```bash
 ip addr show wlan0
 # Look for inet line, e.g., 192.168.1.100
@@ -61,16 +68,19 @@ ip addr show wlan0
    - Right-click PowerShell > Run as Administrator
 
 3. **Allow script execution** (one-time setup):
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 4. **Run the client**:
+
 ```powershell
 .\windows-client.ps1 -ServerUrl "http://YOUR_ANDROID_IP:3000" -ApiKey "YOUR_API_KEY"
 ```
 
 Example:
+
 ```powershell
 .\windows-client.ps1 -ServerUrl "http://192.168.1.100:3000" -ApiKey "abc123..."
 ```
@@ -95,6 +105,7 @@ curl -X POST -H "x-api-key: YOUR_API_KEY" -H "Content-Type: application/json" \
 ### Method 3: Web Browser Extension
 
 Use a REST client browser extension like:
+
 - Postman
 - Thunder Client
 - REST Client
@@ -104,27 +115,33 @@ Set header: `x-api-key: YOUR_API_KEY`
 ## Available API Endpoints
 
 ### Public Endpoints
+
 - `GET /health` - Server health check
 
 ### Authenticated Endpoints (require x-api-key header)
 
 #### System Information
+
 - `GET /api/system` - System information (CPU, memory, network)
 - `GET /api/device/properties` - Android device properties
 - `GET /api/device/battery` - Battery status
 - `GET /api/device/network` - Network interfaces
 
 #### Process & Package Management
+
 - `GET /api/processes` - List running processes
 - `GET /api/packages` - List installed packages
 - `GET /api/packages/:packageName` - Get package details
 
 #### Storage & Logs
+
 - `GET /api/storage` - Storage information
 - `GET /api/logcat?lines=100&filter=TAG` - View logcat
 
 #### Command Execution
+
 - `POST /api/adb/execute` - Execute ADB commands
+
   ```json
   {
     "command": "shell getprop",
@@ -143,7 +160,7 @@ Set header: `x-api-key: YOUR_API_KEY`
 
 1. **API Key**: Keep your API key secret. It's displayed only once when server starts.
 
-2. **Network Security**: 
+2. **Network Security**:
    - Use only on trusted networks
    - Consider using VPN for remote access
    - For production, set up HTTPS with certificates
@@ -157,18 +174,21 @@ Set header: `x-api-key: YOUR_API_KEY`
 ### Cannot connect from Windows
 
 1. **Check firewall on Android**:
+
 ```bash
 # In Termux
 iptables -L  # Check if port 3000 is blocked
 ```
 
 2. **Verify server is running**:
+
 ```bash
 # In Termux
 netstat -tulpn | grep 3000
 ```
 
 3. **Test local connection first**:
+
 ```bash
 # On Android in Termux
 curl http://localhost:3000/health
@@ -184,6 +204,7 @@ curl http://localhost:3000/health
    - Settings > Developer Options > USB Debugging
 
 2. **For wireless ADB**:
+
 ```bash
 # In Termux
 adb kill-server
@@ -197,11 +218,13 @@ adb devices
 ### Server crashes
 
 1. **Check logs**:
+
 ```bash
 npm start 2>&1 | tee server.log
 ```
 
 2. **Increase memory if needed**:
+
 ```bash
 node --max-old-space-size=512 server.js
 ```
@@ -211,11 +234,13 @@ node --max-old-space-size=512 server.js
 ### Running server in background
 
 Using `nohup`:
+
 ```bash
 nohup npm start > server.log 2>&1 &
 ```
 
 Using `screen`:
+
 ```bash
 screen -S android-api
 npm start
@@ -226,6 +251,7 @@ npm start
 ### Auto-start on boot
 
 Create a Termux boot script:
+
 ```bash
 mkdir -p ~/.termux/boot/
 echo '#!/data/data/com.termux/files/usr/bin/sh
@@ -237,6 +263,7 @@ chmod +x ~/.termux/boot/start-api.sh
 ### Setting up HTTPS
 
 1. Generate self-signed certificate:
+
 ```bash
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
 ```
@@ -246,6 +273,7 @@ openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -node
 ## Support
 
 For issues or questions:
+
 1. Check server logs: `npm start 2>&1 | tee debug.log`
 2. Verify all prerequisites are installed
 3. Test with minimal configuration first

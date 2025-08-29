@@ -9,6 +9,7 @@ This is a Node.js Express API backend designed to run on an Android device using
 ## Commands
 
 ### Development
+
 - `npm start` - Start the server (runs server.js)
 - `npm run dev` - Start the server in development mode (same as npm start currently)
 - `npm install` - Install dependencies
@@ -16,6 +17,7 @@ This is a Node.js Express API backend designed to run on an Android device using
 ## Architecture
 
 This is a basic Express.js API backend with the following key dependencies:
+
 - **express**: Web framework for handling HTTP requests
 - **cors**: Middleware for handling Cross-Origin Resource Sharing
 - **body-parser**: Middleware for parsing request bodies
