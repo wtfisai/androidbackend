@@ -65,7 +65,14 @@ module.exports = [
     },
     rules: {
       'no-console': 'off',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^(handleCommandKey|loadDeviceProperties|loadProcesses|loadPackages|loadStorageInfo|loadLogs)$' }],
+      'no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern:
+            '^(handleCommandKey|loadDeviceProperties|loadProcesses|loadPackages|loadStorageInfo|loadLogs)$'
+        }
+      ],
       'prefer-const': 'error',
       'no-var': 'error'
     }

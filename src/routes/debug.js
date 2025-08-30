@@ -18,7 +18,7 @@ async function getProcessDetails(pid) {
     ];
 
     const results = await Promise.all(
-      commands.map(cmd => execAsync(cmd).catch(e => ({ stdout: '', stderr: e.message })))
+      commands.map((cmd) => execAsync(cmd).catch((e) => ({ stdout: '', stderr: e.message })))
     );
 
     const cmdline = results[0].stdout.trim();
@@ -26,7 +26,7 @@ async function getProcessDetails(pid) {
     const fdCount = parseInt(results[2].stdout.trim()) || 0;
 
     const status = {};
-    statusLines.forEach(line => {
+    statusLines.forEach((line) => {
       const [key, ...valueParts] = line.split(':');
       if (key && valueParts.length) {
         status[key.trim()] = valueParts.join(':').trim();
@@ -79,9 +79,9 @@ async function attachStrace(pid, sessionId) {
 async function parseStraceOutput(outputFile, limit = 100) {
   try {
     const { stdout } = await execAsync(`tail -n ${limit} ${outputFile} 2>/dev/null`);
-    const lines = stdout.split('\n').filter(l => l.trim());
+    const lines = stdout.split('\n').filter((l) => l.trim());
 
-    const traces = lines.map(line => {
+    const traces = lines.map((line) => {
       const match = line.match(/^(\d+:\d+:\d+)\s+(\w+)\((.*?)\)\s*=\s*(.+)$/);
       if (match) {
         return {
@@ -169,7 +169,9 @@ router.post('/start', authenticateApiKey, async (req, res) => {
         // Collect snapshots
         if (options.memory) {
           try {
-            const { stdout } = await execAsync(`cat /proc/${pid}/status | grep -E 'VmSize|VmRSS|VmPeak'`);
+            const { stdout } = await execAsync(
+              `cat /proc/${pid}/status | grep -E 'VmSize|VmRSS|VmPeak'`
+            );
             await DebugTrace.addSnapshot(session.sessionId, 'memory', {
               raw: stdout,
               parsed: stdout.split('\n').reduce((acc, line) => {
@@ -341,7 +343,7 @@ router.get('/sessions', authenticateApiKey, async (req, res) => {
     }
 
     // Add live status
-    const sessionsWithStatus = sessions.map(session => ({
+    const sessionsWithStatus = sessions.map((session) => ({
       ...session,
       isLive: activeSessions.has(session.sessionId)
     }));
@@ -408,10 +410,9 @@ router.post('/attach-gdb', authenticateApiKey, async (req, res) => {
     await execAsync(`echo "${gdbCommands}" > ${gdbCmdsFile}`);
 
     // Run GDB
-    const { stdout, stderr } = await execAsync(
-      `gdb -p ${pid} -batch -x ${gdbCmdsFile} 2>&1`,
-      { maxBuffer: 1024 * 1024 * 5 }
-    );
+    const { stdout, stderr } = await execAsync(`gdb -p ${pid} -batch -x ${gdbCmdsFile} 2>&1`, {
+      maxBuffer: 1024 * 1024 * 5
+    });
 
     // Clean up
     await execAsync(`rm -f ${gdbCmdsFile}`);
@@ -476,10 +477,13 @@ router.get('/logcat', authenticateApiKey, async (req, res) => {
     const { stdout } = await execAsync(command);
 
     // Parse logcat output
-    const logs = stdout.split('\n')
-      .filter(line => line.trim())
-      .map(line => {
-        const match = line.match(/^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+(\w)\/(.+?)\s*\(\s*(\d+)\):\s*(.*)$/);
+    const logs = stdout
+      .split('\n')
+      .filter((line) => line.trim())
+      .map((line) => {
+        const match = line.match(
+          /^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+(\w)\/(.+?)\s*\(\s*(\d+)\):\s*(.*)$/
+        );
         if (match) {
           return {
             timestamp: match[1],
@@ -524,7 +528,7 @@ router.post('/heap-dump', authenticateApiKey, async (req, res) => {
     ];
 
     const results = await Promise.all(
-      commands.map(cmd => execAsync(cmd).catch(e => ({ stdout: '' })))
+      commands.map((cmd) => execAsync(cmd).catch((e) => ({ stdout: '' })))
     );
 
     const heapInfo = {
@@ -545,7 +549,7 @@ router.post('/heap-dump', authenticateApiKey, async (req, res) => {
     };
 
     // Parse memory values
-    heapInfo.memory.split('\n').forEach(line => {
+    heapInfo.memory.split('\n').forEach((line) => {
       const [key, value] = line.split(':');
       if (key && value) {
         heapData.memory[key.trim()] = value.trim();

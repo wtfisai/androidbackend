@@ -203,18 +203,13 @@ class DebugTrace {
     };
 
     return new Promise((resolve, reject) => {
-      debugTraces.update(
-        { sessionId },
-        { $push: { traces: trace } },
-        {},
-        (err, numUpdated) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(numUpdated);
-          }
+      debugTraces.update({ sessionId }, { $push: { traces: trace } }, {}, (err, numUpdated) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(numUpdated);
         }
-      );
+      });
     });
   }
 
@@ -224,27 +219,27 @@ class DebugTrace {
       data
     };
 
-    const field = snapshotType === 'memory' ? 'memorySnapshots' :
-      snapshotType === 'cpu' ? 'cpuSnapshots' :
-        snapshotType === 'network' ? 'networkActivity' : null;
+    const field =
+      snapshotType === 'memory'
+        ? 'memorySnapshots'
+        : snapshotType === 'cpu'
+          ? 'cpuSnapshots'
+          : snapshotType === 'network'
+            ? 'networkActivity'
+            : null;
 
     if (!field) {
       return Promise.reject(new Error('Invalid snapshot type'));
     }
 
     return new Promise((resolve, reject) => {
-      debugTraces.update(
-        { sessionId },
-        { $push: { [field]: snapshot } },
-        {},
-        (err, numUpdated) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(numUpdated);
-          }
+      debugTraces.update({ sessionId }, { $push: { [field]: snapshot } }, {}, (err, numUpdated) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(numUpdated);
         }
-      );
+      });
     });
   }
 
@@ -400,13 +395,13 @@ class ProcessLog {
 
             // Calculate memory saved
             if (doc.memoryBefore && doc.memoryAfter) {
-              totalMemorySaved += (doc.memoryBefore - doc.memoryAfter);
+              totalMemorySaved += doc.memoryBefore - doc.memoryAfter;
               validMemoryOps++;
             }
 
             // Calculate CPU reduced
             if (doc.cpuBefore && doc.cpuAfter) {
-              totalCpuReduced += (doc.cpuBefore - doc.cpuAfter);
+              totalCpuReduced += doc.cpuBefore - doc.cpuAfter;
               validCpuOps++;
             }
 

@@ -15,7 +15,7 @@ async function pingTest(host, count = 4) {
     const lines = stdout.split('\n');
 
     // Parse ping statistics
-    const statsLine = lines.find(l => l.includes('min/avg/max'));
+    const statsLine = lines.find((l) => l.includes('min/avg/max'));
     let stats = null;
 
     if (statsLine) {
@@ -30,7 +30,7 @@ async function pingTest(host, count = 4) {
     }
 
     // Parse packet loss
-    const lossLine = lines.find(l => l.includes('packet loss'));
+    const lossLine = lines.find((l) => l.includes('packet loss'));
     let packetLoss = 0;
     if (lossLine) {
       const lossMatch = lossLine.match(/(\d+)% packet loss/);
@@ -59,7 +59,7 @@ async function pingTest(host, count = 4) {
 async function traceroute(host, maxHops = 30) {
   try {
     const { stdout } = await execAsync(`traceroute -m ${maxHops} ${host}`);
-    const lines = stdout.split('\n').filter(l => l.trim());
+    const lines = stdout.split('\n').filter((l) => l.trim());
     const hops = [];
 
     for (const line of lines.slice(1)) {
@@ -75,7 +75,7 @@ async function traceroute(host, maxHops = 30) {
         hops.push({
           hop: hopNumber,
           address: ipMatch ? ipMatch[1] : 'unknown',
-          times: timings ? timings.map(t => parseFloat(t)) : [],
+          times: timings ? timings.map((t) => parseFloat(t)) : [],
           raw: hopData
         });
       }
@@ -142,7 +142,7 @@ router.post('/connectivity', authenticateApiKey, async (req, res) => {
     tests.push({
       type: 'DNS',
       results: dnsTests,
-      summary: dnsTests.some(t => t.status === 'ok') ? 'Working' : 'Failed'
+      summary: dnsTests.some((t) => t.status === 'ok') ? 'Working' : 'Failed'
     });
 
     // Test internet connectivity
@@ -153,13 +153,13 @@ router.post('/connectivity', authenticateApiKey, async (req, res) => {
     ];
 
     const connectivityTests = await Promise.all(
-      connectivityTargets.map(target => pingTest(target.host, 2))
+      connectivityTargets.map((target) => pingTest(target.host, 2))
     );
 
     tests.push({
       type: 'Internet Connectivity',
       results: connectivityTests,
-      summary: connectivityTests.some(t => t.reachable) ? 'Connected' : 'Disconnected'
+      summary: connectivityTests.some((t) => t.reachable) ? 'Connected' : 'Disconnected'
     });
 
     // Test local network
@@ -207,7 +207,7 @@ router.post('/connectivity', authenticateApiKey, async (req, res) => {
       tests.push({
         type: 'Network Interfaces',
         interfaces,
-        summary: interfaces.some(i => i.state === 'UP') ? 'Active' : 'No active interfaces'
+        summary: interfaces.some((i) => i.state === 'UP') ? 'Active' : 'No active interfaces'
       });
     } catch (error) {
       tests.push({
@@ -222,10 +222,11 @@ router.post('/connectivity', authenticateApiKey, async (req, res) => {
       timestamp: new Date(),
       tests,
       overall: {
-        internetAccess: tests.find(t => t.type === 'Internet Connectivity')?.summary === 'Connected',
-        dnsWorking: tests.find(t => t.type === 'DNS')?.summary === 'Working',
-        localNetwork: tests.find(t => t.type === 'Local Network')?.summary === 'Connected',
-        hasActiveInterface: tests.find(t => t.type === 'Network Interfaces')?.summary === 'Active'
+        internetAccess:
+          tests.find((t) => t.type === 'Internet Connectivity')?.summary === 'Connected',
+        dnsWorking: tests.find((t) => t.type === 'DNS')?.summary === 'Working',
+        localNetwork: tests.find((t) => t.type === 'Local Network')?.summary === 'Connected',
+        hasActiveInterface: tests.find((t) => t.type === 'Network Interfaces')?.summary === 'Active'
       }
     };
 
@@ -233,7 +234,9 @@ router.post('/connectivity', authenticateApiKey, async (req, res) => {
     const recommendations = [];
 
     if (!diagnosis.overall.internetAccess) {
-      recommendations.push('No internet connectivity detected. Check your WiFi or mobile data connection.');
+      recommendations.push(
+        'No internet connectivity detected. Check your WiFi or mobile data connection.'
+      );
     }
 
     if (!diagnosis.overall.dnsWorking) {
@@ -286,7 +289,7 @@ router.post('/traceroute', authenticateApiKey, async (req, res) => {
     };
 
     if (result.hops) {
-      const allTimes = result.hops.flatMap(h => h.times).filter(t => t);
+      const allTimes = result.hops.flatMap((h) => h.times).filter((t) => t);
       if (allTimes.length > 0) {
         analysis.avgLatency = allTimes.reduce((a, b) => a + b, 0) / allTimes.length;
         analysis.maxLatency = Math.max(...allTimes);
@@ -296,7 +299,7 @@ router.post('/traceroute', authenticateApiKey, async (req, res) => {
       result.hops.forEach((hop, index) => {
         if (hop.times.length === 0) {
           analysis.possibleIssues.push(`Hop ${hop.hop}: No response (possible firewall)`);
-        } else if (hop.times.some(t => t > 500)) {
+        } else if (hop.times.some((t) => t > 500)) {
           analysis.possibleIssues.push(`Hop ${hop.hop}: High latency detected`);
         }
       });
@@ -331,12 +334,10 @@ router.post('/port-scan', authenticateApiKey, async (req, res) => {
   }
 
   try {
-    const results = await Promise.all(
-      ports.map(port => scanPort(host, port, timeout))
-    );
+    const results = await Promise.all(ports.map((port) => scanPort(host, port, timeout)));
 
-    const openPorts = results.filter(r => r.open).map(r => r.port);
-    const closedPorts = results.filter(r => !r.open).map(r => r.port);
+    const openPorts = results.filter((r) => r.open).map((r) => r.port);
+    const closedPorts = results.filter((r) => !r.open).map((r) => r.port);
 
     // Common port identification
     const commonPorts = {
@@ -359,7 +360,7 @@ router.post('/port-scan', authenticateApiKey, async (req, res) => {
       27017: 'MongoDB'
     };
 
-    const identifiedServices = openPorts.map(port => ({
+    const identifiedServices = openPorts.map((port) => ({
       port,
       service: commonPorts[port] || 'Unknown'
     }));
@@ -415,7 +416,8 @@ router.get('/bandwidth', authenticateApiKey, async (req, res) => {
     const bandwidthInfo = {};
 
     for (const [name, stats] of Object.entries(interfaces)) {
-      if (name !== 'lo') { // Skip loopback
+      if (name !== 'lo') {
+        // Skip loopback
         bandwidthInfo[name] = {
           totalReceived: (stats.received.bytes / (1024 * 1024)).toFixed(2) + ' MB',
           totalTransmitted: (stats.transmitted.bytes / (1024 * 1024)).toFixed(2) + ' MB',
@@ -451,7 +453,9 @@ router.post('/wifi/scan', authenticateApiKey, async (req, res) => {
     } catch (e) {
       // If termux-api is not available, try alternative method
       try {
-        const { stdout: iwlist } = await execAsync('iwlist wlan0 scan 2>/dev/null | grep -E "ESSID|Signal|Encryption"');
+        const { stdout: iwlist } = await execAsync(
+          'iwlist wlan0 scan 2>/dev/null | grep -E "ESSID|Signal|Encryption"'
+        );
         const lines = iwlist.split('\n');
 
         let currentNetwork = {};
@@ -479,16 +483,20 @@ router.post('/wifi/scan', authenticateApiKey, async (req, res) => {
         }
       } catch (innerError) {
         // Fallback to showing current connection only
-        const { stdout: current } = await execAsync('termux-wifi-connectioninfo 2>/dev/null || echo "{}"');
+        const { stdout: current } = await execAsync(
+          'termux-wifi-connectioninfo 2>/dev/null || echo "{}"'
+        );
         try {
           const currentInfo = JSON.parse(current);
           if (currentInfo.ssid) {
-            networks = [{
-              ssid: currentInfo.ssid,
-              signal: currentInfo.rssi || 0,
-              security: 'Connected',
-              current: true
-            }];
+            networks = [
+              {
+                ssid: currentInfo.ssid,
+                signal: currentInfo.rssi || 0,
+                security: 'Connected',
+                current: true
+              }
+            ];
           }
         } catch (e) {
           networks = [];
@@ -519,7 +527,11 @@ router.get('/speed-test', authenticateApiKey, async (req, res) => {
     // Simple speed test using curl to download a test file
     const testUrls = [
       { name: 'Cloudflare', url: 'https://speed.cloudflare.com/__down?bytes=10000000', size: 10 },
-      { name: 'Google', url: 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png', size: 0.013 }
+      {
+        name: 'Google',
+        url: 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png',
+        size: 0.013
+      }
     ];
 
     const results = [];

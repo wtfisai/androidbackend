@@ -9,6 +9,7 @@ Android Remote Diagnostic API - A REST API server for remotely monitoring and ma
 ## Commands
 
 ### Development
+
 - `npm start` - Start the server (runs src/server.js on port 3000)
 - `npm run dev` - Start with nodemon for auto-reload
 - `npm run lint` - Run ESLint checks
@@ -18,17 +19,20 @@ Android Remote Diagnostic API - A REST API server for remotely monitoring and ma
 - `npm test` - Run linting and format checks (no unit tests configured)
 
 ### Termux Service Management
+
 - `sv-enable diagnostic-api` - Enable auto-start on boot
 - `sv restart diagnostic-api` - Restart the service
 
 ## Architecture
 
 ### Core Structure
+
 - **src/server.js** - Entry point, handles server startup and graceful shutdown
 - **src/app.js** - Express app configuration, middleware setup, and route mounting
 - **src/config/index.js** - Centralized configuration using environment variables
 
 ### Route Modules
+
 - **routes/system.js** - System monitoring endpoints (CPU, memory, processes)
 - **routes/device.js** - Device properties, battery status, network interfaces
 - **routes/packages.js** - Package listing and management
@@ -43,24 +47,28 @@ Android Remote Diagnostic API - A REST API server for remotely monitoring and ma
 - **routes/device-management.js** - App installation, permissions, developer options
 
 ### Middleware
+
 - **middleware/auth.js** - API key authentication (header: x-api-key)
 - **middleware/rateLimit.js** - Rate limiting (100 req/min per IP)
 - **middleware/errorHandler.js** - Centralized error handling
 - **middleware/activityTracker.js** - Tracks all API calls and user actions
 
 ### Key Dependencies
+
 - **nedb** - Lightweight embedded database for data persistence
 - **nodemon** - Development server with auto-reload (dev dependency)
 
 ## Important Configuration
 
 ### Environment Variables
+
 - `API_KEY` - Authentication key (default: "diagnostic-api-key-2024")
 - `PORT` - Server port (default: 3000)
 - `NODE_ENV` - Environment mode (development/production)
 - `ALLOWED_ORIGINS` - CORS origins (comma-separated)
 
 ### Security Features
+
 - API key required for all `/api` endpoints except `/health` and `/api/info`
 - Command whitelisting for ADB operations
 - Dangerous shell commands blocked
@@ -74,3 +82,4 @@ Android Remote Diagnostic API - A REST API server for remotely monitoring and ma
 - All API responses use JSON format
 - Graceful shutdown handles SIGTERM and SIGINT signals
 - commit CLAUDE.md to memory
+- remember to always commit and push all updates by regularly creating checkpoints. Always use lint tools and refractor before commiting and pushing at all checkpoints. always setup github app when .git is setup

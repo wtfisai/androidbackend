@@ -14,7 +14,7 @@ const authenticateApiKey = (req, res, next) => {
 };
 
 // Export both names for compatibility
-module.exports = { 
+module.exports = {
   authenticate: authenticateApiKey,
-  authenticateApiKey 
+  authenticateApiKey
 };

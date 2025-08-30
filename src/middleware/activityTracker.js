@@ -13,19 +13,19 @@ const activityTracker = async (req, res, next) => {
   let statusCode = 200;
 
   // Override status method
-  res.status = function(code) {
+  res.status = function (code) {
     statusCode = code;
     return originalStatus.call(this, code);
   };
 
   // Override send method
-  res.send = function(data) {
+  res.send = function (data) {
     responseData = data;
     return originalSend.call(this, data);
   };
 
   // Override json method
-  res.json = function(data) {
+  res.json = function (data) {
     responseData = data;
     return originalJson.call(this, data);
   };

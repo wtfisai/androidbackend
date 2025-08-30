@@ -20,6 +20,7 @@ const androidDebugRoutes = require('./routes/android-debug');
 const profilingRoutes = require('./routes/profiling');
 const testingRoutes = require('./routes/testing');
 const deviceManagementRoutes = require('./routes/device-management');
+const debugToolsRoutes = require('./routes/debug-tools');
 
 // Create Express app
 const app = express();
@@ -125,6 +126,7 @@ app.use('/api/android', androidDebugRoutes);
 app.use('/api/profiling', profilingRoutes);
 app.use('/api/testing', testingRoutes);
 app.use('/api/device-management', deviceManagementRoutes);
+app.use('/api/debug-tools', debugToolsRoutes);
 
 // 404 handler
 app.use((req, res) => {

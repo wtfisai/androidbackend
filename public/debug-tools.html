@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Debug Tools Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-color: #4CAF50;
+            --danger-color: #f44336;
+            --warning-color: #ff9800;
+            --info-color: #2196F3;
+            --dark-bg: #1a1a1a;
+            --card-bg: #ffffff;
+            --border-radius: 12px;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .main-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Tool Categories */
+        .tool-category {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .category-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* Tool Cards */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .tool-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: #764ba2;
+        }
+
+        .tool-card.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tool-card.active .tool-status {
+            color: white;
+        }
+
+        .tool-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .tool-description {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-card.active .tool-description {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .tool-status {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-tool {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-tool-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-tool-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-tool-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-tool-info {
+            background: var(--info-color);
+            color: white;
+        }
+
+        /* Output Console */
+        .output-console {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: #2d2d2d;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            margin: -1rem -1rem 1rem -1rem;
+        }
+
+        .console-title {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .console-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .console-action-btn {
+            background: transparent;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .console-action-btn:hover {
+            background: #3a3a3a;
+            color: white;
+        }
+
+        .log-entry {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #2a2a2a;
+            word-wrap: break-word;
+        }
+
+        .log-level-V { color: #808080; }
+        .log-level-D { color: #4fc3f7; }
+        .log-level-I { color: #81c784; }
+        .log-level-W { color: #ffb74d; }
+        .log-level-E { color: #e57373; }
+        .log-level-F { color: #ff5252; }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .settings-panel.show {
+            display: block;
+        }
+
+        .setting-group {
+            margin-bottom: 1rem;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .status-indicator.inactive {
+            background: #999;
+            animation: none;
+        }
+
+        /* Export Modal */
+        .export-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .export-option {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .export-option:hover {
+            background: #f0f0f0;
+        }
+
+        .export-option input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        /* Tabs */
+        .nav-tabs {
+            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 1rem;
+        }
+
+        .nav-tabs .nav-link {
+            color: #666;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #764ba2;
+            background: transparent;
+            border-bottom: 3px solid #764ba2;
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #764ba2;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-bug-fill"></i> Android Debug Tools
+            </a>
+            <div class="ms-auto">
+                <button class="btn btn-outline-primary me-2" onclick="window.location.href='/'">
+                    <i class="bi bi-house"></i> Main Dashboard
+                </button>
+                <button class="btn btn-outline-success" onclick="showExportModal()">
+                    <i class="bi bi-download"></i> Export All
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-indicator" id="connectionStatus"></span>
+                <span>Connection: <strong id="connectionText">Connected</strong></span>
+            </div>
+            <div class="status-item">
+                <span>Active Processes: <strong id="activeProcessCount">0</strong></span>
+            </div>
+            <div class="status-item">
+                <span>Session ID: <strong id="sessionId">None</strong></span>
+            </div>
+            <div class="status-item">
+                <button class="btn btn-sm btn-outline-primary" onclick="createDebugSession()">
+                    <i class="bi bi-play-circle"></i> New Session
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#debugging">
+                    <i class="bi bi-bug"></i> Debugging
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#profiling">
+                    <i class="bi bi-graph-up"></i> Profiling
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#testing">
+                    <i class="bi bi-check-circle"></i> Testing
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#network">
+                    <i class="bi bi-wifi"></i> Network
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#system">
+                    <i class="bi bi-gear"></i> System
+                </a>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Debugging Tab -->
+            <div class="tab-pane fade show active" id="debugging">
+                <div class="tool-category">
+                    <div class="category-header">
+                        <div class="category-title">
+                            <div class="category-icon">
+                                <i class="bi bi-terminal"></i>
+                            </div>
+                            Logcat & Logs
+                        </div>
+                    </div>
+                    <div class="tool-grid">
+                        <div class="tool-card" onclick="startLogcat()">
+                            <div class="tool-name">Logcat Stream</div>
+                            <div class="tool-description">Real-time Android system logs</div>
+                            <div class="tool-status">Click to start</div>
+                        </div>
+                        <div class="tool-card" onclick="showBugReport()">
+                            <div class="tool-name">Bug Report</div>
+                            <div class="tool-description">Generate comprehensive bug report</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="clearLogcat()">
+                            <div class="tool-name">Clear Logs</div>
+                            <div class="tool-description">Clear logcat buffer</div>
+                            <div class="tool-status">Action</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-category">
+                    <div class="category-header">
+                        <div class="category-title">
+                            <div class="category-icon">
+                                <i class="bi bi-database"></i>
+                            </div>
+                            Data Inspection
+                        </div>
+                    </div>
+                    <div class="tool-grid">
+                        <div class="tool-card" onclick="listDatabases()">
+                            <div class="tool-name">Database Inspector</div>
+                            <div class="tool-description">Browse SQLite databases</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="showLayoutHierarchy()">
+                            <div class="tool-name">Layout Inspector</div>
+                            <div class="tool-description">View UI hierarchy</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="dumpUIAutomator()">
+                            <div class="tool-name">UI Dump</div>
+                            <div class="tool-description">Export UI XML structure</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profiling Tab -->
+            <div class="tab-pane fade" id="profiling">
+                <div class="tool-category">
+                    <div class="category-header">
+                        <div class="category-title">
+                            <div class="category-icon">
+                                <i class="bi bi-cpu"></i>
+                            </div>
+                            Performance Profiling
+                        </div>
+                    </div>
+                    <div class="tool-grid">
+                        <div class="tool-card" onclick="startCPUProfile()">
+                            <div class="tool-name">CPU Profiler</div>
+                            <div class="tool-description">Monitor CPU usage</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="getMemoryInfo()">
+                            <div class="tool-name">Memory Profiler</div>
+                            <div class="tool-description">Analyze memory usage</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="getPowerProfile()">
+                            <div class="tool-name">Power Profiler</div>
+                            <div class="tool-description">Battery & power consumption</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="startSystemTrace()">
+                            <div class="tool-name">System Trace</div>
+                            <div class="tool-description">Perfetto system tracing</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testing Tab -->
+            <div class="tab-pane fade" id="testing">
+                <div class="tool-category">
+                    <div class="category-header">
+                        <div class="category-title">
+                            <div class="category-icon">
+                                <i class="bi bi-play-circle"></i>
+                            </div>
+                            Automated Testing
+                        </div>
+                    </div>
+                    <div class="tool-grid">
+                        <div class="tool-card" onclick="showMonkeyTest()">
+                            <div class="tool-name">Monkey Testing</div>
+                            <div class="tool-description">Random UI stress testing</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="showInstrumentTest()">
+                            <div class="tool-name">Instrumented Tests</div>
+                            <div class="tool-description">Run JUnit tests</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="screenRecord()">
+                            <div class="tool-name">Screen Recording</div>
+                            <div class="tool-description">Record screen activity</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Tab -->
+            <div class="tab-pane fade" id="network">
+                <div class="tool-category">
+                    <div class="category-header">
+                        <div class="category-title">
+                            <div class="category-icon">
+                                <i class="bi bi-diagram-3"></i>
+                            </div>
+                            Network Analysis
+                        </div>
+                    </div>
+                    <div class="tool-grid">
+                        <div class="tool-card" onclick="inspectNetwork()">
+                            <div class="tool-name">Network Inspector</div>
+                            <div class="tool-description">Active connections</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="capturePackets()">
+                            <div class="tool-name">Packet Capture</div>
+                            <div class="tool-description">Capture network packets</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="showPortForwarding()">
+                            <div class="tool-name">Port Forwarding</div>
+                            <div class="tool-description">ADB port forwarding</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Tab -->
+            <div class="tab-pane fade" id="system">
+                <div class="tool-category">
+                    <div class="category-header">
+                        <div class="category-title">
+                            <div class="category-icon">
+                                <i class="bi bi-sliders"></i>
+                            </div>
+                            System Configuration
+                        </div>
+                    </div>
+                    <div class="tool-grid">
+                        <div class="tool-card" onclick="showSettings()">
+                            <div class="tool-name">Settings Manager</div>
+                            <div class="tool-description">System settings control</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="showDeveloperOptions()">
+                            <div class="tool-name">Developer Options</div>
+                            <div class="tool-description">Toggle dev settings</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="showPermissions()">
+                            <div class="tool-name">Permission Manager</div>
+                            <div class="tool-description">Grant/revoke permissions</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                        <div class="tool-card" onclick="listServices()">
+                            <div class="tool-name">Service Inspector</div>
+                            <div class="tool-description">System services list</div>
+                            <div class="tool-status">Ready</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Console -->
+        <div class="output-console">
+            <div class="console-header">
+                <div class="console-title">
+                    <i class="bi bi-terminal"></i> Output Console
+                </div>
+                <div class="console-actions">
+                    <button class="console-action-btn" onclick="clearConsole()">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                    <button class="console-action-btn" onclick="copyConsoleOutput()">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button class="console-action-btn" onclick="exportConsoleOutput()">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                </div>
+            </div>
+            <div id="consoleOutput"></div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export Debug Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="export-options">
+                        <div class="export-option">
+                            <label>
+                                <input type="checkbox" id="exportLogcat" checked> Logcat
+                            </label>
+                        </div>
+                        <div class="export-option">
+                            <label>
+                                <input type="checkbox" id="exportSystem" checked> System Info
+                            </label>
+                        </div>
+                        <div class="export-option">
+                            <label>
+                                <input type="checkbox" id="exportNetwork" checked> Network Data
+                            </label>
+                        </div>
+                        <div class="export-option">
+                            <label>
+                                <input type="checkbox" id="exportMemory" checked> Memory Info
+                            </label>
+                        </div>
+                        <div class="export-option">
+                            <label>
+                                <input type="checkbox" id="exportProcess" checked> Process Info
+                            </label>
+                        </div>
+                        <div class="export-option">
+                            <label>
+                                <input type="checkbox" id="exportBattery" checked> Battery Stats
+                            </label>
+                        </div>
+                        <div class="export-option">
+                            <label>
+                                <input type="checkbox" id="exportPackages"> Packages
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label>Additional Dumpsys Services (comma separated):</label>
+                        <input type="text" class="form-control" id="dumpsysServices" placeholder="e.g., activity, window, alarm">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="exportDebugData()">
+                        <i class="bi bi-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Settings Manager</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-group">
+                        <label>Namespace:</label>
+                        <select class="form-control" id="settingsNamespace">
+                            <option value="system">System</option>
+                            <option value="global">Global</option>
+                            <option value="secure">Secure</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Key:</label>
+                        <input type="text" class="form-control" id="settingsKey" placeholder="e.g., screen_brightness">
+                    </div>
+                    <div class="setting-group">
+                        <label>Value:</label>
+                        <input type="text" class="form-control" id="settingsValue" placeholder="Leave empty to read">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="modifySettings()">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script>
+        // Configuration
+        const API_KEY = 'diagnostic-api-key-2024';
+        const API_BASE = '/api';
+        let currentSessionId = null;
+        let activeProcesses = new Map();
+        let consoleBuffer = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkConnection();
+            setInterval(updateStatus, 5000);
+        });
+
+        // API Helper
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: {
+                    'x-api-key': API_KEY,
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API Error');
+                }
+                
+                return data;
+            } catch (error) {
+                logToConsole(`Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Console Management
+        function logToConsole(message, level = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = { timestamp, message, level };
+            consoleBuffer.push(entry);
+            
+            const consoleOutput = document.getElementById('consoleOutput');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-level-${level.toUpperCase()}`;
+            logEntry.innerHTML = `[${timestamp}] ${escapeHtml(message)}`;
+            consoleOutput.appendChild(logEntry);
+            
+            // Auto-scroll
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // Limit buffer size
+            if (consoleBuffer.length > 1000) {
+                consoleBuffer.shift();
+                consoleOutput.removeChild(consoleOutput.firstChild);
+            }
+        }
+
+        function clearConsole() {
+            document.getElementById('consoleOutput').innerHTML = '';
+            consoleBuffer = [];
+            logToConsole('Console cleared', 'info');
+        }
+
+        function copyConsoleOutput() {
+            const text = consoleBuffer.map(e => `[${e.timestamp}] ${e.message}`).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                logToConsole('Console output copied to clipboard', 'info');
+            });
+        }
+
+        function exportConsoleOutput() {
+            const text = consoleBuffer.map(e => `[${e.timestamp}] [${e.level}] ${e.message}`).join('\n');
+            downloadText(text, 'console_output.txt');
+        }
+
+        // Status Management
+        async function checkConnection() {
+            try {
+                await apiCall('/health');
+                updateConnectionStatus(true);
+            } catch {
+                updateConnectionStatus(false);
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionStatus');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                indicator.classList.remove('inactive');
+                text.textContent = 'Connected';
+            } else {
+                indicator.classList.add('inactive');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        async function updateStatus() {
+            checkConnection();
+            document.getElementById('activeProcessCount').textContent = activeProcesses.size;
+            
+            // Check active processes
+            for (const [processId, info] of activeProcesses.entries()) {
+                if (info.status === 'running') {
+                    checkProcessStatus(processId);
+                }
+            }
+        }
+
+        // Session Management
+        async function createDebugSession() {
+            try {
+                const response = await apiCall('/debug/start', 'POST', {
+                    type: 'debug_tools',
+                    description: 'Debug Tools Dashboard Session'
+                });
+                
+                currentSessionId = response.sessionId;
+                document.getElementById('sessionId').textContent = currentSessionId.substring(0, 8) + '...';
+                logToConsole(`Debug session created: ${currentSessionId}`, 'info');
+            } catch (error) {
+                logToConsole(`Failed to create session: ${error.message}`, 'error');
+            }
+        }
+
+        // Debug Tools Functions
+        async function startLogcat() {
+            try {
+                logToConsole('Starting logcat stream...', 'info');
+                const response = await apiCall('/debug-tools/logcat/start', 'POST', {
+                    level: 'I',
+                    format: 'threadtime',
+                    sessionId: currentSessionId
+                });
+                
+                activeProcesses.set(response.processId, {
+                    type: 'logcat',
+                    status: 'running',
+                    startTime: Date.now()
+                });
+                
+                logToConsole(`Logcat started (Process: ${response.processId})`, 'success');
+                
+                // Start polling for output
+                pollProcessOutput(response.processId);
+            } catch (error) {
+                logToConsole(`Failed to start logcat: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearLogcat() {
+            try {
+                await apiCall('/android/logcat?clear=true');
+                logToConsole('Logcat buffer cleared', 'success');
+            } catch (error) {
+                logToConsole(`Failed to clear logcat: ${error.message}`, 'error');
+            }
+        }
+
+        async function showBugReport() {
+            try {
+                logToConsole('Generating bug report...', 'info');
+                const response = await apiCall('/debug-tools/bugreport/generate', 'POST', {
+                    type: 'full',
+                    sessionId: currentSessionId
+                });
+                
+                activeProcesses.set(response.processId, {
+                    type: 'bugreport',
+                    status: 'running',
+                    filepath: response.filepath
+                });
+                
+                logToConsole(`Bug report generation started: ${response.filepath}`, 'success');
+                pollProcessOutput(response.processId);
+            } catch (error) {
+                logToConsole(`Failed to generate bug report: ${error.message}`, 'error');
+            }
+        }
+
+        async function listDatabases() {
+            try {
+                logToConsole('Listing databases...', 'info');
+                const response = await apiCall('/debug-tools/database/list?sessionId=' + currentSessionId);
+                
+                if (response.databases.length === 0) {
+                    logToConsole('No databases found', 'warning');
+                } else {
+                    logToConsole(`Found ${response.databases.length} databases:`, 'info');
+                    response.databases.forEach(db => {
+                        logToConsole(`  - ${db.name} (${db.size} bytes) at ${db.path}`, 'info');
+                    });
+                }
+            } catch (error) {
+                logToConsole(`Failed to list databases: ${error.message}`, 'error');
+            }
+        }
+
+        async function showLayoutHierarchy() {
+            try {
+                logToConsole('Getting layout hierarchy...', 'info');
+                const response = await apiCall('/debug-tools/layout/hierarchy?sessionId=' + currentSessionId);
+                
+                logToConsole('Activity Info:', 'info');
+                logToConsole(response.activityInfo, 'info');
+                logToConsole('Window Info:', 'info');
+                logToConsole(response.windowInfo, 'info');
+            } catch (error) {
+                logToConsole(`Failed to get layout hierarchy: ${error.message}`, 'error');
+            }
+        }
+
+        async function dumpUIAutomator() {
+            try {
+                logToConsole('Dumping UI hierarchy...', 'info');
+                const response = await apiCall('/debug-tools/uiautomator/dump', 'POST', {
+                    sessionId: currentSessionId
+                });
+                
+                if (response.success) {
+                    logToConsole(`UI dump saved to: ${response.filepath}`, 'success');
+                    if (response.uiHierarchy) {
+                        logToConsole('UI Hierarchy (preview):', 'info');
+                        logToConsole(response.uiHierarchy.substring(0, 500) + '...', 'info');
+                    }
+                } else {
+                    logToConsole('Failed to dump UI', 'error');
+                }
+            } catch (error) {
+                logToConsole(`Failed to dump UI: ${error.message}`, 'error');
+            }
+        }
+
+        async function startCPUProfile() {
+            try {
+                logToConsole('Starting CPU profiler...', 'info');
+                const response = await apiCall('/debug-tools/profiler/cpu/start', 'POST', {
+                    duration: 10,
+                    sessionId: currentSessionId
+                });
+                
+                activeProcesses.set(response.processId, {
+                    type: 'cpu_profile',
+                    status: 'running'
+                });
+                
+                logToConsole(`CPU profiling started for 10 seconds`, 'success');
+                pollProcessOutput(response.processId);
+            } catch (error) {
+                logToConsole(`Failed to start CPU profiler: ${error.message}`, 'error');
+            }
+        }
+
+        async function getMemoryInfo() {
+            try {
+                logToConsole('Getting memory information...', 'info');
+                const response = await apiCall('/debug-tools/profiler/memory?sessionId=' + currentSessionId);
+                
+                logToConsole('Memory Information:', 'info');
+                logToConsole(response.meminfo, 'info');
+                logToConsole('System Memory:', 'info');
+                logToConsole(response.systemMemory, 'info');
+            } catch (error) {
+                logToConsole(`Failed to get memory info: ${error.message}`, 'error');
+            }
+        }
+
+        async function getPowerProfile() {
+            try {
+                logToConsole('Getting power profile...', 'info');
+                const response = await apiCall('/debug-tools/profiler/power?sessionId=' + currentSessionId);
+                
+                logToConsole('Battery Status:', 'info');
+                logToConsole(response.battery, 'info');
+                logToConsole('Wakelocks:', 'info');
+                logToConsole(response.wakelocks, 'info');
+            } catch (error) {
+                logToConsole(`Failed to get power profile: ${error.message}`, 'error');
+            }
+        }
+
+        async function startSystemTrace() {
+            try {
+                logToConsole('Starting system trace...', 'info');
+                const response = await apiCall('/debug-tools/trace/start', 'POST', {
+                    duration: 10,
+                    categories: 'sched freq idle',
+                    sessionId: currentSessionId
+                });
+                
+                activeProcesses.set(response.processId, {
+                    type: 'system_trace',
+                    status: 'running',
+                    tracePath: response.tracePath
+                });
+                
+                logToConsole(`System trace started (10 seconds): ${response.tracePath}`, 'success');
+                pollProcessOutput(response.processId);
+            } catch (error) {
+                logToConsole(`Failed to start system trace: ${error.message}`, 'error');
+            }
+        }
+
+        async function showMonkeyTest() {
+            const packageName = prompt('Enter package name for Monkey testing:');
+            if (!packageName) return;
+            
+            try {
+                logToConsole(`Starting Monkey test for ${packageName}...`, 'info');
+                const response = await apiCall('/debug-tools/monkey/start', 'POST', {
+                    packageName,
+                    eventCount: 500,
+                    throttle: 100,
+                    sessionId: currentSessionId
+                });
+                
+                activeProcesses.set(response.processId, {
+                    type: 'monkey_test',
+                    status: 'running'
+                });
+                
+                logToConsole(`Monkey test started (500 events)`, 'success');
+                pollProcessOutput(response.processId);
+            } catch (error) {
+                logToConsole(`Failed to start Monkey test: ${error.message}`, 'error');
+            }
+        }
+
+        async function showInstrumentTest() {
+            const testPackage = prompt('Enter test package name:');
+            if (!testPackage) return;
+            
+            try {
+                logToConsole(`Starting instrumented test for ${testPackage}...`, 'info');
+                const response = await apiCall('/debug-tools/instrument/run', 'POST', {
+                    testPackage,
+                    sessionId: currentSessionId
+                });
+                
+                activeProcesses.set(response.processId, {
+                    type: 'instrument_test',
+                    status: 'running'
+                });
+                
+                logToConsole(`Instrumented test started`, 'success');
+                pollProcessOutput(response.processId);
+            } catch (error) {
+                logToConsole(`Failed to start instrumented test: ${error.message}`, 'error');
+            }
+        }
+
+        async function screenRecord() {
+            try {
+                logToConsole('Starting screen recording...', 'info');
+                const response = await apiCall('/debug-tools/screen/record', 'POST', {
+                    duration: 30,
+                    bitrate: 4000000,
+                    sessionId: currentSessionId
+                });
+                
+                activeProcesses.set(response.processId, {
+                    type: 'screen_record',
+                    status: 'running',
+                    filepath: response.filepath
+                });
+                
+                logToConsole(`Recording for 30 seconds: ${response.filepath}`, 'success');
+                pollProcessOutput(response.processId);
+            } catch (error) {
+                logToConsole(`Failed to start screen recording: ${error.message}`, 'error');
+            }
+        }
+
+        async function inspectNetwork() {
+            try {
+                logToConsole('Inspecting network...', 'info');
+                const response = await apiCall('/debug-tools/network/inspect?sessionId=' + currentSessionId);
+                
+                logToConsole(`Found ${response.connections.length} network connections:`, 'info');
+                response.connections.forEach(conn => {
+                    logToConsole(`  ${conn.protocol} ${conn.local} -> ${conn.remote} [${conn.state}]`, 'info');
+                });
+            } catch (error) {
+                logToConsole(`Failed to inspect network: ${error.message}`, 'error');
+            }
+        }
+
+        async function capturePackets() {
+            try {
+                logToConsole('Starting packet capture...', 'info');
+                const response = await apiCall('/debug-tools/export/packets', 'POST', {
+                    duration: 10,
+                    interface: 'any',
+                    maxPackets: 100,
+                    sessionId: currentSessionId
+                });
+                
+                logToConsole(`Packet capture started: ${response.filename}`, 'success');
+                logToConsole('Preview:', 'info');
+                logToConsole(response.preview, 'info');
+                
+                if (response.downloadUrl) {
+                    logToConsole(`Download: ${response.downloadUrl}`, 'info');
+                }
+            } catch (error) {
+                logToConsole(`Failed to capture packets: ${error.message}`, 'error');
+            }
+        }
+
+        async function showPortForwarding() {
+            const localPort = prompt('Enter local port:');
+            const remotePort = prompt('Enter remote port:');
+            
+            if (!localPort || !remotePort) return;
+            
+            try {
+                logToConsole(`Setting up port forwarding ${localPort} -> ${remotePort}...`, 'info');
+                const response = await apiCall('/debug-tools/adb/forward', 'POST', {
+                    localPort,
+                    remotePort,
+                    sessionId: currentSessionId
+                });
+                
+                if (response.success) {
+                    logToConsole(`Port forwarding established`, 'success');
+                } else {
+                    logToConsole(`Failed: ${response.output}`, 'error');
+                }
+            } catch (error) {
+                logToConsole(`Failed to set up port forwarding: ${error.message}`, 'error');
+            }
+        }
+
+        async function showSettings() {
+            const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
+            modal.show();
+        }
+
+        async function modifySettings() {
+            const namespace = document.getElementById('settingsNamespace').value;
+            const key = document.getElementById('settingsKey').value;
+            const value = document.getElementById('settingsValue').value;
+            
+            if (!key) {
+                alert('Please enter a settings key');
+                return;
+            }
+            
+            try {
+                logToConsole(`Modifying settings: ${namespace}.${key}...`, 'info');
+                const response = await apiCall('/debug-tools/settings/modify', 'POST', {
+                    namespace,
+                    key,
+                    value: value || undefined,
+                    sessionId: currentSessionId
+                });
+                
+                if (response.success) {
+                    logToConsole(`Settings ${value ? 'updated' : 'read'}: ${response.output}`, 'success');
+                } else {
+                    logToConsole(`Failed: ${response.output}`, 'error');
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('settingsModal')).hide();
+            } catch (error) {
+                logToConsole(`Failed to modify settings: ${error.message}`, 'error');
+            }
+        }
+
+        async function showDeveloperOptions() {
+            const options = [
+                { key: 'show_touches', name: 'Show Touches' },
+                { key: 'pointer_location', name: 'Pointer Location' },
+                { key: 'show_surface_updates', name: 'Show Surface Updates' },
+                { key: 'show_layout_bounds', name: 'Show Layout Bounds' },
+                { key: 'animator_duration', name: 'Animator Duration Scale' }
+            ];
+            
+            const option = prompt(`Select option:\n${options.map((o, i) => `${i+1}. ${o.name}`).join('\n')}`);
+            if (!option) return;
+            
+            const selected = options[parseInt(option) - 1];
+            if (!selected) return;
+            
+            const value = prompt(`Enter value for ${selected.name} (0 or 1):`);
+            if (value === null) return;
+            
+            try {
+                logToConsole(`Setting ${selected.name} to ${value}...`, 'info');
+                const response = await apiCall('/debug-tools/developer/option', 'POST', {
+                    option: selected.key,
+                    value,
+                    sessionId: currentSessionId
+                });
+                
+                if (response.success) {
+                    logToConsole(`Developer option updated`, 'success');
+                } else {
+                    logToConsole(`Failed: ${response.output}`, 'error');
+                }
+            } catch (error) {
+                logToConsole(`Failed to update developer option: ${error.message}`, 'error');
+            }
+        }
+
+        async function showPermissions() {
+            const packageName = prompt('Enter package name:');
+            const permission = prompt('Enter permission (e.g., android.permission.CAMERA):');
+            
+            if (!packageName || !permission) return;
+            
+            try {
+                logToConsole(`Granting ${permission} to ${packageName}...`, 'info');
+                const response = await apiCall('/debug-tools/pm/grant', 'POST', {
+                    packageName,
+                    permission,
+                    sessionId: currentSessionId
+                });
+                
+                if (response.success) {
+                    logToConsole(`Permission granted`, 'success');
+                } else {
+                    logToConsole(`Failed: ${response.output}`, 'error');
+                }
+            } catch (error) {
+                logToConsole(`Failed to grant permission: ${error.message}`, 'error');
+            }
+        }
+
+        async function listServices() {
+            try {
+                logToConsole('Listing system services...', 'info');
+                const response = await apiCall('/debug-tools/services/list?sessionId=' + currentSessionId);
+                
+                logToConsole(`Found ${response.count} services:`, 'info');
+                response.services.slice(0, 20).forEach(service => {
+                    logToConsole(`  - ${service}`, 'info');
+                });
+                
+                if (response.count > 20) {
+                    logToConsole(`  ... and ${response.count - 20} more`, 'info');
+                }
+            } catch (error) {
+                logToConsole(`Failed to list services: ${error.message}`, 'error');
+            }
+        }
+
+        // Process Management
+        async function pollProcessOutput(processId) {
+            const info = activeProcesses.get(processId);
+            if (!info || info.status !== 'running') return;
+            
+            try {
+                const response = await apiCall(`/debug-tools/process/${processId}`);
+                
+                if (response.stdout) {
+                    const lines = response.stdout.split('\n').slice(-10);
+                    lines.forEach(line => {
+                        if (line.trim()) {
+                            logToConsole(line, 'info');
+                        }
+                    });
+                }
+                
+                if (response.status === 'completed') {
+                    info.status = 'completed';
+                    logToConsole(`Process ${processId} completed (exit code: ${response.exitCode})`, 
+                                 response.exitCode === 0 ? 'success' : 'error');
+                } else {
+                    // Continue polling
+                    setTimeout(() => pollProcessOutput(processId), 2000);
+                }
+            } catch (error) {
+                info.status = 'error';
+                logToConsole(`Process ${processId} error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkProcessStatus(processId) {
+            try {
+                const response = await apiCall(`/debug-tools/process/${processId}`);
+                const info = activeProcesses.get(processId);
+                
+                if (info && response.status === 'completed') {
+                    info.status = 'completed';
+                }
+            } catch {
+                // Process might be gone
+                const info = activeProcesses.get(processId);
+                if (info) {
+                    info.status = 'error';
+                }
+            }
+        }
+
+        // Export Functions
+        function showExportModal() {
+            const modal = new bootstrap.Modal(document.getElementById('exportModal'));
+            modal.show();
+        }
+
+        async function exportDebugData() {
+            try {
+                logToConsole('Starting debug data export...', 'info');
+                
+                const dumpsysServices = document.getElementById('dumpsysServices').value
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s);
+                
+                const response = await apiCall('/debug-tools/export/all', 'POST', {
+                    includeLogcat: document.getElementById('exportLogcat').checked,
+                    includeSystemInfo: document.getElementById('exportSystem').checked,
+                    includeNetworkData: document.getElementById('exportNetwork').checked,
+                    includeMemoryInfo: document.getElementById('exportMemory').checked,
+                    includeProcessInfo: document.getElementById('exportProcess').checked,
+                    includeBatteryStats: document.getElementById('exportBattery').checked,
+                    includePackages: document.getElementById('exportPackages').checked,
+                    includeDumpsys: dumpsysServices,
+                    sessionId: currentSessionId,
+                    format: 'txt'
+                });
+                
+                logToConsole(`Export completed: ${response.filename} (${response.size} bytes)`, 'success');
+                logToConsole(`Sections exported: ${response.sections.join(', ')}`, 'info');
+                
+                // Download the file
+                if (response.downloadUrl) {
+                    window.location.href = response.downloadUrl;
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+            } catch (error) {
+                logToConsole(`Export failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Utility Functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function downloadText(text, filename) {
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

@@ -24,13 +24,14 @@ router.get('/overview', authenticateApiKey, async (req, res) => {
     try {
       const { stdout: memInfo } = await execAsync('free -m');
       const lines = memInfo.split('\n');
-      const memLine = lines.find(l => l.startsWith('Mem:'));
+      const memLine = lines.find((l) => l.startsWith('Mem:'));
       if (memLine) {
         const parts = memLine.split(/\s+/);
         systemStatus.memoryTotal = parseInt(parts[1]);
         systemStatus.memoryUsed = parseInt(parts[2]);
         systemStatus.memoryFree = parseInt(parts[3]);
-        systemStatus.memoryUsagePercent = (systemStatus.memoryUsed / systemStatus.memoryTotal) * 100;
+        systemStatus.memoryUsagePercent =
+          (systemStatus.memoryUsed / systemStatus.memoryTotal) * 100;
       }
     } catch (e) {
       systemStatus.memoryUsagePercent = 0;
@@ -54,7 +55,7 @@ router.get('/overview', authenticateApiKey, async (req, res) => {
     // Network status
     try {
       const { stdout: netInfo } = await execAsync('ip addr show | grep "state UP"');
-      systemStatus.networkInterfaces = netInfo.split('\n').filter(l => l.trim()).length;
+      systemStatus.networkInterfaces = netInfo.split('\n').filter((l) => l.trim()).length;
     } catch (e) {
       systemStatus.networkInterfaces = 0;
     }
@@ -96,15 +97,16 @@ router.get('/overview', authenticateApiKey, async (req, res) => {
       activity: {
         last24Hours: activityStats.totalActivities,
         byType: activityStats.byType,
-        errorRate: activityStats.totalActivities > 0
-          ? (activityStats.errorCount / activityStats.totalActivities * 100).toFixed(2) + '%'
-          : '0%',
+        errorRate:
+          activityStats.totalActivities > 0
+            ? ((activityStats.errorCount / activityStats.totalActivities) * 100).toFixed(2) + '%'
+            : '0%',
         avgResponseTime: activityStats.avgDuration.toFixed(2) + 'ms',
         topActions: activityStats.topActions.slice(0, 5)
       },
       debugging: {
         activeSessions: activeSessions.length,
-        totalSessions: await DebugTrace.getAllSessions(1000).then(s => s.length)
+        totalSessions: await DebugTrace.getAllSessions(1000).then((s) => s.length)
       },
       optimization: {
         recentActions: recentOptimizations.length,
@@ -124,13 +126,7 @@ router.get('/overview', authenticateApiKey, async (req, res) => {
 // GET /api/dashboard/activities
 router.get('/activities', authenticateApiKey, async (req, res) => {
   try {
-    const {
-      type,
-      limit = 100,
-      offset = 0,
-      startDate,
-      endDate
-    } = req.query;
+    const { type, limit = 100, offset = 0, startDate, endDate } = req.query;
 
     const filter = {};
 
@@ -168,7 +164,7 @@ router.get('/activities', authenticateApiKey, async (req, res) => {
     }
 
     // Populate with actual data
-    activities.forEach(activity => {
+    activities.forEach((activity) => {
       const hour = activity.timestamp.toISOString().substring(0, 13);
       if (hourlyData[hour]) {
         hourlyData[hour].count++;
@@ -182,7 +178,7 @@ router.get('/activities', authenticateApiKey, async (req, res) => {
     });
 
     // Calculate averages
-    Object.values(hourlyData).forEach(hour => {
+    Object.values(hourlyData).forEach((hour) => {
       if (hour.durations.length > 0) {
         hour.avgDuration = hour.durations.reduce((a, b) => a + b, 0) / hour.durations.length;
       }
@@ -245,10 +241,15 @@ router.get('/processes', authenticateApiKey, async (req, res) => {
 
       // Determine status
       const stat = process.stat || '';
-      process.status = stat.includes('S') ? 'sleeping' :
-        stat.includes('R') ? 'running' :
-          stat.includes('T') ? 'stopped' :
-            stat.includes('Z') ? 'zombie' : 'unknown';
+      process.status = stat.includes('S')
+        ? 'sleeping'
+        : stat.includes('R')
+          ? 'running'
+          : stat.includes('T')
+            ? 'stopped'
+            : stat.includes('Z')
+              ? 'zombie'
+              : 'unknown';
 
       // Check if process has been optimized recently
       try {
@@ -279,7 +280,7 @@ router.get('/processes', authenticateApiKey, async (req, res) => {
       processes,
       count: processes.length,
       sortedBy: sortBy,
-      suggestions: processes.filter(p => p.optimizationSuggestion).length
+      suggestions: processes.filter((p) => p.optimizationSuggestion).length
     });
   } catch (error) {
     res.status(500).json({
@@ -296,7 +297,7 @@ router.get('/debug-sessions', authenticateApiKey, async (req, res) => {
 
     // Enhance with statistics
     const enhancedSessions = await Promise.all(
-      sessions.map(async session => {
+      sessions.map(async (session) => {
         const enhanced = { ...session };
 
         // Calculate session duration
@@ -324,7 +325,7 @@ router.get('/debug-sessions', authenticateApiKey, async (req, res) => {
 
         // CPU usage average
         if (session.cpuSnapshots && session.cpuSnapshots.length > 0) {
-          const cpuValues = session.cpuSnapshots.map(s => s.data.usage).filter(v => v);
+          const cpuValues = session.cpuSnapshots.map((s) => s.data.usage).filter((v) => v);
           enhanced.avgCpu = cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length;
         }
 
@@ -335,8 +336,8 @@ router.get('/debug-sessions', authenticateApiKey, async (req, res) => {
     res.json({
       sessions: enhancedSessions,
       count: enhancedSessions.length,
-      active: enhancedSessions.filter(s => s.status === 'active').length,
-      completed: enhancedSessions.filter(s => s.status === 'completed').length
+      active: enhancedSessions.filter((s) => s.status === 'active').length,
+      completed: enhancedSessions.filter((s) => s.status === 'completed').length
     });
   } catch (error) {
     res.status(500).json({
@@ -371,17 +372,17 @@ router.get('/optimization-stats', authenticateApiKey, async (req, res) => {
     }
 
     // Populate with actual data
-    history.forEach(log => {
+    history.forEach((log) => {
       const hour = log.timestamp.toISOString().substring(0, 13);
       if (hourlyStats[hour]) {
         hourlyStats[hour].actions++;
         if (log.status === 'success') {
           hourlyStats[hour].successful++;
           if (log.memoryBefore && log.memoryAfter) {
-            hourlyStats[hour].memorySaved += (log.memoryBefore - log.memoryAfter);
+            hourlyStats[hour].memorySaved += log.memoryBefore - log.memoryAfter;
           }
           if (log.cpuBefore && log.cpuAfter) {
-            hourlyStats[hour].cpuReduced += (log.cpuBefore - log.cpuAfter);
+            hourlyStats[hour].cpuReduced += log.cpuBefore - log.cpuAfter;
           }
         } else {
           hourlyStats[hour].failed++;
@@ -435,7 +436,7 @@ router.get('/alerts', authenticateApiKey, async (req, res) => {
     // Check memory usage
     try {
       const { stdout } = await execAsync('free -m');
-      const memLine = stdout.split('\n').find(l => l.startsWith('Mem:'));
+      const memLine = stdout.split('\n').find((l) => l.startsWith('Mem:'));
       if (memLine) {
         const parts = memLine.split(/\s+/);
         const total = parseInt(parts[1]);
@@ -520,9 +521,9 @@ router.get('/alerts', authenticateApiKey, async (req, res) => {
     res.json({
       alerts,
       count: alerts.length,
-      critical: alerts.filter(a => a.type === 'critical').length,
-      warning: alerts.filter(a => a.type === 'warning').length,
-      info: alerts.filter(a => a.type === 'info').length
+      critical: alerts.filter((a) => a.type === 'critical').length,
+      warning: alerts.filter((a) => a.type === 'warning').length,
+      info: alerts.filter((a) => a.type === 'info').length
     });
   } catch (error) {
     res.status(500).json({

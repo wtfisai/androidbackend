@@ -18,7 +18,9 @@ router.get(
     if (cpuCount === 0) {
       // Fallback for Android/Termux
       try {
-        const { stdout } = await execAsync('nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo 2>/dev/null || echo "8"');
+        const { stdout } = await execAsync(
+          'nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo 2>/dev/null || echo "8"'
+        );
         cpuCount = parseInt(stdout.trim()) || 8;
       } catch {
         cpuCount = 8; // Default fallback

@@ -14,9 +14,9 @@ const testSessions = new Map();
 router.post('/ui-automator/click', authenticateApiKey, async (req, res) => {
   try {
     const { x, y, resourceId, text, className, contentDesc } = req.body;
-    
+
     let command = 'input tap';
-    
+
     if (x !== undefined && y !== undefined) {
       // Click at coordinates
       command = `input tap ${x} ${y}`;
@@ -25,19 +25,19 @@ router.post('/ui-automator/click', authenticateApiKey, async (req, res) => {
       const selector = buildUiSelector({ resourceId, text, className, contentDesc });
       command = `uiautomator runtest /system/framework/uiautomator.jar -c ${selector}`;
     } else {
-      return res.status(400).json({ 
-        error: 'Either coordinates or element selector required' 
+      return res.status(400).json({
+        error: 'Either coordinates or element selector required'
       });
     }
-    
+
     await execAsync(command);
-    
+
     await Activity.log({
       type: 'testing',
       action: 'ui_click',
       metadata: { x, y, resourceId, text, className }
     });
-    
+
     res.json({
       success: true,
       action: 'click',
@@ -55,23 +55,22 @@ router.post('/ui-automator/click', authenticateApiKey, async (req, res) => {
 router.post('/ui-automator/swipe', authenticateApiKey, async (req, res) => {
   try {
     const { startX, startY, endX, endY, duration = 300 } = req.body;
-    
-    if (startX === undefined || startY === undefined || 
-        endX === undefined || endY === undefined) {
-      return res.status(400).json({ 
-        error: 'Start and end coordinates required' 
+
+    if (startX === undefined || startY === undefined || endX === undefined || endY === undefined) {
+      return res.status(400).json({
+        error: 'Start and end coordinates required'
       });
     }
-    
+
     const command = `input swipe ${startX} ${startY} ${endX} ${endY} ${duration}`;
     await execAsync(command);
-    
+
     await Activity.log({
       type: 'testing',
       action: 'ui_swipe',
       metadata: { startX, startY, endX, endY, duration }
     });
-    
+
     res.json({
       success: true,
       action: 'swipe',
@@ -91,11 +90,11 @@ router.post('/ui-automator/swipe', authenticateApiKey, async (req, res) => {
 router.post('/ui-automator/text', authenticateApiKey, async (req, res) => {
   try {
     const { text, resourceId, className, clear = false } = req.body;
-    
+
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
     }
-    
+
     // Clear existing text if requested
     if (clear) {
       if (resourceId || className) {
@@ -107,17 +106,17 @@ router.post('/ui-automator/text', authenticateApiKey, async (req, res) => {
       await execAsync('input keyevent KEYCODE_MOVE_END');
       await execAsync('input keyevent --longpress $(printf "KEYCODE_DEL %.0s" {1..250})');
     }
-    
+
     // Input new text
     const escapedText = text.replace(/'/g, "\\'").replace(/"/g, '\\"');
     await execAsync(`input text "${escapedText}"`);
-    
+
     await Activity.log({
       type: 'testing',
       action: 'ui_text_input',
       metadata: { text: text.substring(0, 100), clear }
     });
-    
+
     res.json({
       success: true,
       action: 'text_input',
@@ -136,25 +135,25 @@ router.post('/ui-automator/text', authenticateApiKey, async (req, res) => {
 router.post('/ui-automator/keyevent', authenticateApiKey, async (req, res) => {
   try {
     const { keyCode, longPress = false } = req.body;
-    
+
     if (!keyCode) {
       return res.status(400).json({ error: 'Key code is required' });
     }
-    
-    let command = `input keyevent`;
+
+    let command = 'input keyevent';
     if (longPress) {
       command += ' --longpress';
     }
     command += ` ${keyCode}`;
-    
+
     await execAsync(command);
-    
+
     await Activity.log({
       type: 'testing',
       action: 'ui_keyevent',
       metadata: { keyCode, longPress }
     });
-    
+
     res.json({
       success: true,
       action: 'keyevent',
@@ -173,22 +172,22 @@ router.post('/ui-automator/keyevent', authenticateApiKey, async (req, res) => {
 router.get('/ui-automator/dump', authenticateApiKey, async (req, res) => {
   try {
     const dumpPath = '/sdcard/ui_dump.xml';
-    
+
     // Dump UI hierarchy
     await execAsync(`uiautomator dump ${dumpPath}`);
-    
+
     // Read the dump file
     const { stdout } = await execAsync(`cat ${dumpPath}`);
-    
+
     // Parse UI elements
     const elements = parseUiDump(stdout);
-    
+
     await Activity.log({
       type: 'testing',
       action: 'ui_dump',
       metadata: { elementCount: elements.length }
     });
-    
+
     res.json({
       elements,
       count: elements.length,
@@ -226,29 +225,37 @@ router.post('/monkey', authenticateApiKey, async (req, res) => {
       percentFlip = 1,
       percentAnyevent = 15
     } = req.body;
-    
+
     if (!packageName) {
       return res.status(400).json({ error: 'Package name is required' });
     }
-    
+
     // Build monkey command
     let command = 'monkey';
     command += ` -p ${packageName}`;
     command += ` --throttle ${throttle}`;
-    
+
     if (seed) {
       command += ` -s ${seed}`;
     }
-    
+
     for (const category of categories) {
       command += ` -c ${category}`;
     }
-    
-    if (ignoreCrashes) command += ' --ignore-crashes';
-    if (ignoreTimeouts) command += ' --ignore-timeouts';
-    if (ignoreSecurityExceptions) command += ' --ignore-security-exceptions';
-    if (killProcessAfterError) command += ' --kill-process-after-error';
-    
+
+    if (ignoreCrashes) {
+      command += ' --ignore-crashes';
+    }
+    if (ignoreTimeouts) {
+      command += ' --ignore-timeouts';
+    }
+    if (ignoreSecurityExceptions) {
+      command += ' --ignore-security-exceptions';
+    }
+    if (killProcessAfterError) {
+      command += ' --kill-process-after-error';
+    }
+
     // Event percentages
     command += ` --pct-touch ${percentTouch}`;
     command += ` --pct-motion ${percentMotion}`;
@@ -259,13 +266,13 @@ router.post('/monkey', authenticateApiKey, async (req, res) => {
     command += ` --pct-appswitch ${percentAppswitch}`;
     command += ` --pct-flip ${percentFlip}`;
     command += ` --pct-anyevent ${percentAnyevent}`;
-    
+
     command += ` ${eventCount}`;
-    
+
     // Start monkey test in background
     const sessionId = `monkey_${Date.now()}`;
     const outputPath = `/tmp/monkey_${sessionId}.log`;
-    
+
     exec(`${command} > ${outputPath} 2>&1`, (error, stdout, stderr) => {
       testSessions.set(sessionId, {
         status: 'completed',
@@ -274,7 +281,7 @@ router.post('/monkey', authenticateApiKey, async (req, res) => {
         endTime: new Date()
       });
     });
-    
+
     testSessions.set(sessionId, {
       type: 'monkey',
       packageName,
@@ -283,13 +290,13 @@ router.post('/monkey', authenticateApiKey, async (req, res) => {
       status: 'running',
       outputPath
     });
-    
+
     await Activity.log({
       type: 'testing',
       action: 'monkey_test_start',
       metadata: { sessionId, packageName, eventCount }
     });
-    
+
     res.json({
       sessionId,
       status: 'started',
@@ -317,14 +324,14 @@ router.post('/instrumented/run', authenticateApiKey, async (req, res) => {
       testMethod,
       arguments = {}
     } = req.body;
-    
+
     if (!testPackage) {
       return res.status(400).json({ error: 'Test package is required' });
     }
-    
+
     // Build am instrument command
-    let command = `am instrument -w`;
-    
+    let command = 'am instrument -w';
+
     // Add test class/method if specified
     if (testClass) {
       command += ` -e class ${testClass}`;
@@ -332,26 +339,26 @@ router.post('/instrumented/run', authenticateApiKey, async (req, res) => {
         command += `#${testMethod}`;
       }
     }
-    
+
     // Add custom arguments
     for (const [key, value] of Object.entries(arguments)) {
       command += ` -e ${key} ${value}`;
     }
-    
+
     command += ` ${testPackage}/${testRunner}`;
-    
+
     // Run instrumented test
     const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 5 });
-    
+
     // Parse test results
     const results = parseInstrumentedTestOutput(stdout);
-    
+
     await Activity.log({
       type: 'testing',
       action: 'instrumented_test',
       metadata: { testPackage, testClass, testMethod, results }
     });
-    
+
     res.json({
       testPackage,
       testRunner,
@@ -373,11 +380,11 @@ router.get('/sessions/:sessionId', authenticateApiKey, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const session = testSessions.get(sessionId);
-    
+
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
-    
+
     // Read output file if available
     let output = null;
     if (session.outputPath && session.status === 'completed') {
@@ -388,7 +395,7 @@ router.get('/sessions/:sessionId', authenticateApiKey, async (req, res) => {
         output = 'Failed to read output';
       }
     }
-    
+
     res.json({
       sessionId,
       ...session,
@@ -406,33 +413,33 @@ router.get('/sessions/:sessionId', authenticateApiKey, async (req, res) => {
 router.post('/benchmark/startup', authenticateApiKey, async (req, res) => {
   try {
     const { packageName, activityName, iterations = 10, coldStart = true } = req.body;
-    
+
     if (!packageName || !activityName) {
-      return res.status(400).json({ 
-        error: 'Package name and activity name are required' 
+      return res.status(400).json({
+        error: 'Package name and activity name are required'
       });
     }
-    
+
     const measurements = [];
-    
+
     for (let i = 0; i < iterations; i++) {
       // Force stop app for cold start
       if (coldStart) {
         await execAsync(`am force-stop ${packageName}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-      
+
       // Start activity and measure time
       const startTime = Date.now();
       await execAsync(`am start -W -n ${packageName}/${activityName}`);
       const launchTime = Date.now() - startTime;
-      
+
       measurements.push(launchTime);
-      
+
       // Wait between iterations
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-    
+
     // Calculate statistics
     const stats = {
       min: Math.min(...measurements),
@@ -441,13 +448,13 @@ router.post('/benchmark/startup', authenticateApiKey, async (req, res) => {
       median: measurements.sort((a, b) => a - b)[Math.floor(measurements.length / 2)],
       measurements
     };
-    
+
     await Activity.log({
       type: 'testing',
       action: 'benchmark_startup',
       metadata: { packageName, activityName, iterations, stats }
     });
-    
+
     res.json({
       packageName,
       activityName,
@@ -468,10 +475,10 @@ router.post('/benchmark/startup', authenticateApiKey, async (req, res) => {
 router.post('/espresso/record', authenticateApiKey, async (req, res) => {
   try {
     const { duration = 30 } = req.body;
-    
+
     const sessionId = `espresso_${Date.now()}`;
     const scriptPath = `/tmp/espresso_${sessionId}.txt`;
-    
+
     // Start recording UI events
     const recordingProcess = exec(
       `getevent -lt > ${scriptPath}`,
@@ -486,7 +493,7 @@ router.post('/espresso/record', authenticateApiKey, async (req, res) => {
         }
       }
     );
-    
+
     testSessions.set(sessionId, {
       type: 'espresso_recording',
       duration,
@@ -495,13 +502,13 @@ router.post('/espresso/record', authenticateApiKey, async (req, res) => {
       status: 'recording',
       pid: recordingProcess.pid
     });
-    
+
     await Activity.log({
       type: 'testing',
       action: 'espresso_record_start',
       metadata: { sessionId, duration }
     });
-    
+
     res.json({
       sessionId,
       status: 'recording',
@@ -520,7 +527,7 @@ router.post('/espresso/record', authenticateApiKey, async (req, res) => {
 // Helper function to build UI selector
 function buildUiSelector({ resourceId, text, className, contentDesc }) {
   const conditions = [];
-  
+
   if (resourceId) {
     conditions.push(`resource-id="${resourceId}"`);
   }
@@ -533,7 +540,7 @@ function buildUiSelector({ resourceId, text, className, contentDesc }) {
   if (contentDesc) {
     conditions.push(`content-desc="${contentDesc}"`);
   }
-  
+
   return conditions.join(' ');
 }
 
@@ -541,26 +548,39 @@ function buildUiSelector({ resourceId, text, className, contentDesc }) {
 function parseUiDump(xml) {
   const elements = [];
   const nodeMatches = xml.matchAll(/<node([^>]+)>/g);
-  
+
   for (const match of nodeMatches) {
     const nodeStr = match[1];
     const element = {};
-    
+
     // Extract attributes
     const attrs = [
-      'index', 'text', 'resource-id', 'class', 'package',
-      'content-desc', 'checkable', 'checked', 'clickable',
-      'enabled', 'focusable', 'focused', 'scrollable',
-      'long-clickable', 'password', 'selected', 'bounds'
+      'index',
+      'text',
+      'resource-id',
+      'class',
+      'package',
+      'content-desc',
+      'checkable',
+      'checked',
+      'clickable',
+      'enabled',
+      'focusable',
+      'focused',
+      'scrollable',
+      'long-clickable',
+      'password',
+      'selected',
+      'bounds'
     ];
-    
+
     for (const attr of attrs) {
       const attrMatch = nodeStr.match(new RegExp(`${attr}="([^"]*)"`));
       if (attrMatch) {
         element[attr.replace('-', '_')] = attrMatch[1];
       }
     }
-    
+
     // Parse bounds
     if (element.bounds) {
       const boundsMatch = element.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
@@ -577,10 +597,10 @@ function parseUiDump(xml) {
         };
       }
     }
-    
+
     elements.push(element);
   }
-  
+
   return elements;
 }
 
@@ -594,7 +614,7 @@ function parseInstrumentedTestOutput(output) {
     time: 0,
     testCases: []
   };
-  
+
   // Parse summary line
   const summaryMatch = output.match(/Tests run:\s*(\d+),\s*Failures:\s*(\d+),\s*Errors:\s*(\d+)/);
   if (summaryMatch) {
@@ -602,10 +622,12 @@ function parseInstrumentedTestOutput(output) {
     results.failures = parseInt(summaryMatch[2]);
     results.errors = parseInt(summaryMatch[3]);
   }
-  
+
   // Parse individual test results
-  const testMatches = output.matchAll(/INSTRUMENTATION_STATUS: test=(\S+)[\s\S]*?INSTRUMENTATION_STATUS: (?:current|numtests)=(\d+)[\s\S]*?INSTRUMENTATION_STATUS_CODE: (-?\d+)/g);
-  
+  const testMatches = output.matchAll(
+    /INSTRUMENTATION_STATUS: test=(\S+)[\s\S]*?INSTRUMENTATION_STATUS: (?:current|numtests)=(\d+)[\s\S]*?INSTRUMENTATION_STATUS_CODE: (-?\d+)/g
+  );
+
   for (const match of testMatches) {
     const statusCode = parseInt(match[3]);
     results.testCases.push({
@@ -615,13 +637,13 @@ function parseInstrumentedTestOutput(output) {
       statusCode
     });
   }
-  
+
   // Parse time
   const timeMatch = output.match(/Time:\s*([\d.]+)/);
   if (timeMatch) {
     results.time = parseFloat(timeMatch[1]);
   }
-  
+
   return results;
 }
 

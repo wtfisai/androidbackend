@@ -8,7 +8,9 @@ const execAsync = promisify(exec);
 // Helper function to get process info
 async function getProcessInfo(pid) {
   try {
-    const { stdout } = await execAsync(`ps -p ${pid} -o pid,ppid,user,nice,pri,psr,pcpu,pmem,vsz,rss,tty,stat,start_time,time,comm`);
+    const { stdout } = await execAsync(
+      `ps -p ${pid} -o pid,ppid,user,nice,pri,psr,pcpu,pmem,vsz,rss,tty,stat,start_time,time,comm`
+    );
     const lines = stdout.trim().split('\n');
     if (lines.length < 2) {
       return null;
@@ -34,10 +36,7 @@ async function getProcessResources(pid) {
     const memCmd = `cat /proc/${pid}/status | grep -E 'VmRSS|VmSize' | awk '{print $2}'`;
     const cpuCmd = `top -b -n 1 -p ${pid} | tail -1 | awk '{print $9}'`;
 
-    const [memResult, cpuResult] = await Promise.all([
-      execAsync(memCmd),
-      execAsync(cpuCmd)
-    ]);
+    const [memResult, cpuResult] = await Promise.all([execAsync(memCmd), execAsync(cpuCmd)]);
 
     const memLines = memResult.stdout.trim().split('\n');
     const memory = memLines[0] ? parseInt(memLines[0]) : 0;
@@ -71,7 +70,7 @@ router.put('/process/:pid/sleep', authenticateApiKey, async (req, res) => {
     await execAsync(`kill -${signal} ${pid}`);
 
     // Wait a moment for the signal to take effect
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Get new state
     const processAfter = await getProcessInfo(pid);
@@ -140,7 +139,7 @@ router.put('/process/:pid/wake', authenticateApiKey, async (req, res) => {
     await execAsync(`kill -SIGCONT ${pid}`);
 
     // Wait for process to resume
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Get new state
     const processAfter = await getProcessInfo(pid);
@@ -271,8 +270,8 @@ router.post('/batch', authenticateApiKey, async (req, res) => {
   res.json({
     action,
     totalProcessed: results.length,
-    successful: results.filter(r => r.status === 'success').length,
-    failed: results.filter(r => r.status === 'failed').length,
+    successful: results.filter((r) => r.status === 'success').length,
+    failed: results.filter((r) => r.status === 'failed').length,
     results
   });
 });
@@ -335,7 +334,7 @@ router.get('/suggestions', authenticateApiKey, async (req, res) => {
       if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
         return priorityOrder[b.priority] - priorityOrder[a.priority];
       }
-      return (b.cpu + b.memory) - (a.cpu + a.memory);
+      return b.cpu + b.memory - (a.cpu + a.memory);
     });
 
     res.json({
@@ -389,7 +388,7 @@ router.post('/memory/clean', authenticateApiKey, async (req, res) => {
     // Parse memory info
     const parseMemory = (output) => {
       const lines = output.stdout.split('\n');
-      const memLine = lines.find(l => l.startsWith('Mem:'));
+      const memLine = lines.find((l) => l.startsWith('Mem:'));
       if (memLine) {
         const parts = memLine.split(/\s+/);
         return {
@@ -404,8 +403,7 @@ router.post('/memory/clean', authenticateApiKey, async (req, res) => {
     const memoryBefore = parseMemory(memBefore);
     const memoryAfter = parseMemory(memAfter);
 
-    const freedMemory = memoryBefore && memoryAfter ?
-      memoryAfter.free - memoryBefore.free : 0;
+    const freedMemory = memoryBefore && memoryAfter ? memoryAfter.free - memoryBefore.free : 0;
 
     res.json({
       success: true,
