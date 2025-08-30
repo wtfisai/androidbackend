@@ -86,3 +86,7 @@ temp/
 
 # PID files
 .diagnostic-api.pid
+
+# Claude configuration
+CLAUDE.md
+.claude/

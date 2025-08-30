@@ -1,17 +1,73 @@
-# Android Backend - Remote Diagnostic API
+# Android Remote Diagnostic API 🚀
 
-A comprehensive REST API server for remotely monitoring and managing Android devices, designed to run on Termux.
+A comprehensive REST API server for remotely monitoring, debugging, and managing Android devices via Termux. Features a powerful web dashboard with 36+ integrated debugging tools.
 
-## Features
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Node](https://img.shields.io/badge/node-%3E%3D20.0.0-green)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Termux-orange)
 
-- 🔍 **System Monitoring** - Real-time CPU, memory, battery, and network status
-- 📱 **Device Information** - Android version, model, manufacturer details
-- 🔧 **Remote Diagnostics** - Execute ADB and shell commands safely
-- 📦 **Package Management** - View and inspect installed applications
-- 💾 **Storage Monitoring** - Disk usage and filesystem information
-- 📊 **Process Management** - View running processes and resource usage
-- 🌐 **Web Dashboard** - Beautiful, responsive web interface
-- 🔒 **Secure Access** - API key authentication and rate limiting
+## 🌟 Features
+
+### Core Capabilities
+- **System Monitoring** - Real-time CPU, memory, disk, and process monitoring
+- **Device Management** - Battery status, network interfaces, device properties
+- **Package Management** - List, install, uninstall Android packages
+- **Remote Command Execution** - Secure shell and ADB command execution
+- **Debug Tools Dashboard** - Web-based interface for all debugging features
+- **Data Export** - Export logs, traces, and network packets to files
+
+### 36 Integrated Android Debug Tools
+
+#### 🔍 Debugging & Logs
+1. **Logcat** - Real-time Android system logs with advanced filtering
+2. **Bug Report Generator** - Comprehensive system diagnostic reports
+3. **Layout Inspector** - UI hierarchy and view tree analysis
+4. **Database Inspector** - SQLite/Room database exploration
+5. **Network Inspector** - HTTP/WebSocket traffic monitoring
+
+#### 📊 Performance Profiling
+6. **CPU Profiler** - CPU usage sampling and tracing
+7. **Memory Profiler** - Memory allocations and heap analysis
+8. **Power Profiler** - Battery usage and power consumption
+9. **System Trace** - Full system tracing via Perfetto
+10. **Battery Stats** - Detailed battery consumption analytics
+
+#### 🔧 System Tools
+11. **Dumpsys Services** - Inspect 30+ system services
+12. **Settings Manager** - Read/write system settings
+13. **Developer Options** - Toggle developer settings
+14. **Permission Manager** - Grant/revoke app permissions
+15. **Screen Recording** - Capture screen activity
+
+#### 📱 Device Management
+16. **ADB Device Discovery** - List and manage connected devices
+17. **Wireless Debugging** - Connect via Wi-Fi
+18. **App Installation** - Install/uninstall APKs
+19. **Port Forwarding** - Bridge local/device ports
+20. **Intent Broadcasting** - Send system intents
+
+#### 🧪 Testing Frameworks
+21. **UI Automator** - Cross-app UI automation
+22. **Monkey Testing** - Random UI stress testing
+23. **Instrumented Tests** - Run JUnit tests on device
+24. **Espresso Integration** - UI testing framework
+25. **Screenshot Capture** - Take device screenshots
+
+#### 🌐 Network Analysis
+26. **Network Connections** - Active connection monitoring
+27. **Packet Capture** - tcpdump integration
+28. **Port Scanning** - Network service discovery
+29. **Bandwidth Monitoring** - Network usage statistics
+30. **WiFi Scanner** - Available networks detection
+
+#### 📈 Advanced Diagnostics
+31. **Process Optimization** - Sleep/wake/kill processes
+32. **Memory Cleanup** - Free system memory
+33. **Trace Logging** - Application trace collection
+34. **GDB Debugging** - Native code debugging
+35. **Heap Dumps** - Memory heap analysis
+36. **Export All Data** - Comprehensive data export with customizable options
 
 ## Quick Start
 
