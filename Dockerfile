@@ -41,20 +41,20 @@ WORKDIR /app
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Copy application files
+# We only copy the files necessary for production.
+# Development files like linting configs, markdown files, and helper scripts are excluded.
+# This is safe because we run `npm ci --only=production`, which does not install devDependencies,
+# so no build steps inside the container will need these files.
 COPY --chown=nodejs:nodejs package*.json ./
 COPY --chown=nodejs:nodejs src/ ./src/
 COPY --chown=nodejs:nodejs public/ ./public/
 COPY --chown=nodejs:nodejs utils/ ./utils/
-COPY --chown=nodejs:nodejs *.md ./
-COPY --chown=nodejs:nodejs *.sh ./
-COPY --chown=nodejs:nodejs windows-client.ps1 ./
-COPY --chown=nodejs:nodejs .eslintrc.js ./
-COPY --chown=nodejs:nodejs eslint.config.js ./
 
-# Create directories for logs and data
+# Create directories for logs and data, and set ownership
+# The /data/local/tmp directory is used by the debug tools to store temporary files.
+# We give the nodejs user ownership instead of using chmod 777 for better security.
 RUN mkdir -p /app/logs /app/data /data/local/tmp && \
-    chown -R nodejs:nodejs /app/logs /app/data && \
-    chmod 777 /data/local/tmp || true
+    chown -R nodejs:nodejs /app/logs /app/data /data/local/tmp
 
 # Set environment variables
 ENV NODE_ENV=production \
