@@ -23,6 +23,8 @@ const deviceManagementRoutes = require('./routes/device-management');
 const debugToolsRoutes = require('./routes/debug-tools');
 const filesRoutes = require('./routes/files');
 const appsRoutes = require('./routes/apps');
+const remoteControlRoutes = require('./routes/remote-control');
+const permissionsRoutes = require('./routes/permissions');
 
 // Create Express app
 const app = express();
@@ -131,6 +133,8 @@ app.use('/api/device-management', deviceManagementRoutes);
 app.use('/api/debug-tools', debugToolsRoutes);
 app.use('/api/files', filesRoutes);
 app.use('/api/apps', appsRoutes);
+app.use('/api/remote', remoteControlRoutes);
+app.use('/api/permissions', permissionsRoutes);
 
 // 404 handler
 app.use((req, res) => {
