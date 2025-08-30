@@ -185,6 +185,43 @@
                 <i class="bi bi-phone-fill text-primary"></i> Android Diagnostic Dashboard
             </a>
             <div class="d-flex align-items-center">
+                <!-- System Metrics Bar (hidden on main dashboard) -->
+                <div id="metricsBar" class="d-none align-items-center me-3 px-3 py-1 bg-light rounded">
+                    <!-- Network Signal -->
+                    <div class="me-3 d-flex align-items-center">
+                        <span id="networkSignal" class="me-1">
+                            <i class="bi bi-reception-0"></i>
+                        </span>
+                        <span id="wifiSignal">
+                            <i class="bi bi-wifi-off"></i>
+                        </span>
+                    </div>
+                    
+                    <!-- Uptime -->
+                    <div class="me-3">
+                        <i class="bi bi-clock-fill text-info"></i>
+                        <small id="uptimeMetric">--</small>
+                    </div>
+                    
+                    <!-- Battery -->
+                    <div class="me-3">
+                        <i class="bi bi-battery-half text-success"></i>
+                        <small id="batteryMetric">--%</small>
+                    </div>
+                    
+                    <!-- RAM Usage -->
+                    <div class="me-3">
+                        <i class="bi bi-memory text-warning"></i>
+                        <small id="ramMetric">--%</small>
+                    </div>
+                    
+                    <!-- Storage -->
+                    <div class="me-3">
+                        <i class="bi bi-hdd-fill text-primary"></i>
+                        <small id="storageMetric">--%</small>
+                    </div>
+                </div>
+                
                 <a href="/files.html" class="btn btn-outline-primary me-2">
                     <i class="bi bi-folder-fill"></i> Files
                 </a>
@@ -226,7 +263,7 @@
             <div class="col-md-3 col-6">
                 <div class="stat-card">
                     <div class="stat-value" id="memoryUsage">-</div>
-                    <div class="stat-label">Memory Usage</div>
+                    <div class="stat-label">RAM Usage</div>
                 </div>
             </div>
             <div class="col-md-3 col-6">

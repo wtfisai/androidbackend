@@ -268,7 +268,44 @@
             <a class="navbar-brand" href="/">
                 <i class="bi bi-folder-fill"></i> File Explorer
             </a>
-            <div class="ms-auto d-flex gap-2">
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                <!-- System Metrics Bar -->
+                <div id="metricsBar" class="d-flex align-items-center me-3 px-3 py-1 bg-light rounded">
+                    <!-- Network Signal -->
+                    <div class="me-3 d-flex align-items-center">
+                        <span id="networkSignal" class="me-1">
+                            <i class="bi bi-reception-0"></i>
+                        </span>
+                        <span id="wifiSignal">
+                            <i class="bi bi-wifi-off"></i>
+                        </span>
+                    </div>
+                    
+                    <!-- Uptime -->
+                    <div class="me-3">
+                        <i class="bi bi-clock-fill text-info"></i>
+                        <small id="uptimeMetric">--</small>
+                    </div>
+                    
+                    <!-- Battery -->
+                    <div class="me-3">
+                        <i class="bi bi-battery-half text-success"></i>
+                        <small id="batteryMetric">--%</small>
+                    </div>
+                    
+                    <!-- RAM Usage -->
+                    <div class="me-3">
+                        <i class="bi bi-memory text-warning"></i>
+                        <small id="ramMetric">--%</small>
+                    </div>
+                    
+                    <!-- Storage -->
+                    <div class="me-3">
+                        <i class="bi bi-hdd-fill text-primary"></i>
+                        <small id="storageMetric">--%</small>
+                    </div>
+                </div>
+                
                 <button class="btn btn-outline-primary" onclick="window.location.href='/'">
                     <i class="bi bi-house"></i> Dashboard
                 </button>
@@ -760,5 +797,6 @@
         }
     </script>
     <script src="/js/mobile-menu.js"></script>
+    <script src="/js/metrics-bar.js"></script>
 </body>
 </html>
