@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
 const config = require('./config');
 const { rateLimit } = require('./middleware/rateLimit');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -24,6 +26,10 @@ const debugToolsRoutes = require('./routes/debug-tools');
 
 // Create Express app
 const app = express();
+
+// Security headers & compression
+app.use(helmet());
+app.use(compression());
 
 // Middleware - CORS first to handle preflight requests
 app.use(
@@ -64,7 +70,6 @@ app.get('/api/info', (req, res) => {
   res.json({
     message: 'Android Diagnostic API',
     version: require('../package.json').version,
-    apiKey: config.apiKey,
     hint: 'Use this API key in the x-api-key header',
     dashboard: 'Access the web dashboard at /',
     documentation: 'https://github.com/wtfisai/androidbackend',

@@ -56,10 +56,9 @@ RUN mkdir -p /app/logs /app/data /data/local/tmp && \
     chown -R nodejs:nodejs /app/logs /app/data && \
     chmod 777 /data/local/tmp || true
 
-# Set environment variables
+# Set environment variables (secrets like API_KEY must be provided at runtime)
 ENV NODE_ENV=production \
-    PORT=3000 \
-    API_KEY=diagnostic-api-key-2024
+    PORT=3000
 
 # Expose port
 EXPOSE 3000
