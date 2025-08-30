@@ -25,6 +25,9 @@ RUN apk add --no-cache \
     procps \
     iputils \
     busybox-extras \
+    tcpdump \
+    strace \
+    lsof \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user for security
@@ -39,14 +42,19 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Copy application files
 COPY --chown=nodejs:nodejs package*.json ./
-COPY --chown=nodejs:nodejs server.js ./
+COPY --chown=nodejs:nodejs src/ ./src/
 COPY --chown=nodejs:nodejs public/ ./public/
+COPY --chown=nodejs:nodejs utils/ ./utils/
 COPY --chown=nodejs:nodejs *.md ./
 COPY --chown=nodejs:nodejs *.sh ./
 COPY --chown=nodejs:nodejs windows-client.ps1 ./
+COPY --chown=nodejs:nodejs .eslintrc.js ./
+COPY --chown=nodejs:nodejs eslint.config.js ./
 
-# Create directory for logs
-RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
+# Create directories for logs and data
+RUN mkdir -p /app/logs /app/data /data/local/tmp && \
+    chown -R nodejs:nodejs /app/logs /app/data && \
+    chmod 777 /data/local/tmp || true
 
 # Set environment variables
 ENV NODE_ENV=production \
@@ -64,4 +72,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 USER nodejs
 
 # Start the application
-CMD ["node", "server.js"]
+CMD ["node", "src/server.js"]

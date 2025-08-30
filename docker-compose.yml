@@ -4,6 +4,9 @@ services:
   android-api:
     build: .
     image: android-diagnostic-api:latest
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
     container_name: android-diagnostic-api
     restart: unless-stopped
     ports:
@@ -18,6 +21,8 @@ services:
       - ./logs:/app/logs
       # Mount for persistent data (optional)
       - api-data:/app/data
+      # Mount for debug data and exports
+      - ./debug-exports:/data/local/tmp
     networks:
       - diagnostic-net
     healthcheck:
