@@ -28,6 +28,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadSystemInfo();
   loadBatteryInfo();
   loadNetworkInfo();
+  checkRootStatus(); // Check root status
+
+  // Initialize Bootstrap tooltips
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
 
   // Set up auto-refresh
   setInterval(() => {
@@ -367,6 +374,53 @@ function formatBytes(bytes) {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Check root status
+async function checkRootStatus() {
+  try {
+    // Check for root using dedicated endpoint
+    const result = await fetchAPI('/api/root-status');
+    
+    const rootStatusElement = document.getElementById('rootStatus');
+    const rootIconElement = document.getElementById('rootIcon');
+    const tooltipInstance = bootstrap.Tooltip.getInstance(rootStatusElement);
+    
+    if (result && result.rooted) {
+      // Device is rooted
+      rootStatusElement.classList.remove('bg-secondary');
+      rootStatusElement.classList.add('bg-success');
+      rootIconElement.classList.remove('bi-lock-fill');
+      rootIconElement.classList.add('bi-unlock-fill');
+      
+      // Update tooltip
+      if (tooltipInstance) {
+        tooltipInstance.setContent({ '.tooltip-inner': 'Device is ROOTED - Full system access available' });
+      }
+    } else {
+      // Device is not rooted
+      rootStatusElement.classList.remove('bg-secondary');
+      rootStatusElement.classList.add('bg-warning');
+      rootIconElement.classList.remove('bi-unlock-fill');
+      rootIconElement.classList.add('bi-lock-fill');
+      
+      // Update tooltip
+      if (tooltipInstance) {
+        tooltipInstance.setContent({ '.tooltip-inner': 'Device is NOT ROOTED - Limited system access' });
+      }
+    }
+  } catch (error) {
+    // Error checking root status
+    const rootStatusElement = document.getElementById('rootStatus');
+    const tooltipInstance = bootstrap.Tooltip.getInstance(rootStatusElement);
+    
+    rootStatusElement.classList.remove('bg-secondary');
+    rootStatusElement.classList.add('bg-danger');
+    
+    if (tooltipInstance) {
+      tooltipInstance.setContent({ '.tooltip-inner': 'Unable to determine root status' });
+    }
+  }
 }
 
 // Initial stats update
