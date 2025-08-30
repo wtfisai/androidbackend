@@ -16,6 +16,10 @@ const optimizationRoutes = require('./routes/optimization');
 const diagnosticsRoutes = require('./routes/diagnostics');
 const debugRoutes = require('./routes/debug');
 const dashboardRoutes = require('./routes/dashboard');
+const androidDebugRoutes = require('./routes/android-debug');
+const profilingRoutes = require('./routes/profiling');
+const testingRoutes = require('./routes/testing');
+const deviceManagementRoutes = require('./routes/device-management');
 
 // Create Express app
 const app = express();
@@ -117,6 +121,10 @@ app.use('/api/optimize', optimizationRoutes);
 app.use('/api/diagnostics', diagnosticsRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/android', androidDebugRoutes);
+app.use('/api/profiling', profilingRoutes);
+app.use('/api/testing', testingRoutes);
+app.use('/api/device-management', deviceManagementRoutes);
 
 // 404 handler
 app.use((req, res) => {

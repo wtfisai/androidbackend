@@ -33,11 +33,20 @@ Android Remote Diagnostic API - A REST API server for remotely monitoring and ma
 - **routes/device.js** - Device properties, battery status, network interfaces
 - **routes/packages.js** - Package listing and management
 - **routes/commands.js** - Shell and ADB command execution endpoints
+- **routes/optimization.js** - Process optimization (sleep/wake/kill)
+- **routes/diagnostics.js** - Network diagnostics and connectivity testing
+- **routes/debug.js** - Debug sessions and trace logging
+- **routes/dashboard.js** - Dashboard API for monitoring and statistics
+- **routes/android-debug.js** - Android debugging tools (logcat, dumpsys, bugreport)
+- **routes/profiling.js** - Performance profiling (CPU, memory, power, network)
+- **routes/testing.js** - Automated testing (UI Automator, Monkey, instrumented tests)
+- **routes/device-management.js** - App installation, permissions, developer options
 
 ### Middleware
 - **middleware/auth.js** - API key authentication (header: x-api-key)
 - **middleware/rateLimit.js** - Rate limiting (100 req/min per IP)
 - **middleware/errorHandler.js** - Centralized error handling
+- **middleware/activityTracker.js** - Tracks all API calls and user actions
 
 ### Key Dependencies
 - **nedb** - Lightweight embedded database for data persistence
