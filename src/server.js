@@ -3,6 +3,12 @@ const config = require('./config');
 
 // Start server
 const server = app.listen(config.port, '0.0.0.0', () => {
+  const maskedApiKey = config.apiKey
+    ? (config.nodeEnv === 'development'
+        ? `${config.apiKey.slice(0, 4)}...${config.apiKey.slice(-4)}`
+        : 'hidden')
+    : 'not set';
+
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║       Android Remote Diagnostic API Server Started        ║
@@ -11,7 +17,7 @@ const server = app.listen(config.port, '0.0.0.0', () => {
 ║  Server running on: http://0.0.0.0:${config.port}                    ║
 ║  Environment: ${config.nodeEnv.padEnd(45)}║
 ║                                                            ║
-║  API Key: ${config.apiKey.substring(0, 20)}...                         ║
+║  API Key: ${maskedApiKey.padEnd(43)}║
 ║                                                            ║
 ║  Save this API key to connect from Windows 11!            ║
 ║                                                            ║

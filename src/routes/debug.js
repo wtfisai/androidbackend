@@ -458,21 +458,45 @@ router.post('/attach-gdb', authenticateApiKey, async (req, res) => {
 router.get('/logcat', authenticateApiKey, async (req, res) => {
   const { pid, packageName, lines = 100, level = 'V' } = req.query;
 
+  // Simple shell arg escaper (single-quote safe)
+  const escapeShellArg = (value) => {
+    return `'${String(value).replace(/'/g, "'\\''")}'`;
+  };
+
   try {
+    // Validate and sanitize inputs
+    const allowedLevels = new Set(['V', 'D', 'I', 'W', 'E', 'F']);
+    const safeLevel = allowedLevels.has(String(level).toUpperCase())
+      ? String(level).toUpperCase()
+      : 'V';
+
+    let safeLines = parseInt(lines, 10);
+    if (!Number.isFinite(safeLines) || safeLines <= 0) safeLines = 100;
+    safeLines = Math.min(Math.max(safeLines, 1), 2000); // clamp 1..2000
+
     let command = 'logcat -d -v time';
 
-    // Add filters
-    if (pid) {
-      command += ` --pid=${pid}`;
+    if (pid !== undefined && pid !== null && String(pid).trim() !== '') {
+      const numericPid = parseInt(pid, 10);
+      if (!Number.isInteger(numericPid) || numericPid <= 0) {
+        return res.status(400).json({ error: 'Invalid pid' });
+      }
+      command += ` --pid=${numericPid}`;
     } else if (packageName) {
-      command += ` | grep ${packageName}`;
+      // Restrict packageName to common package chars
+      const pkg = String(packageName);
+      if (!/^[A-Za-z0-9_.-]{1,200}$/.test(pkg)) {
+        return res.status(400).json({ error: 'Invalid packageName' });
+      }
+      // Use fixed-string grep to avoid regex or shell injection
+      command += ` | grep -F -- ${escapeShellArg(pkg)}`;
     }
 
     // Add log level filter
-    command += ` *:${level}`;
+    command += ` *:${safeLevel}`;
 
     // Limit lines
-    command += ` | tail -n ${lines}`;
+    command += ` | tail -n ${safeLines}`;
 
     const { stdout } = await execAsync(command);
 
@@ -489,7 +513,7 @@ router.get('/logcat', authenticateApiKey, async (req, res) => {
             timestamp: match[1],
             level: match[2],
             tag: match[3],
-            pid: parseInt(match[4]),
+            pid: parseInt(match[4], 10),
             message: match[5]
           };
         }
@@ -499,7 +523,7 @@ router.get('/logcat', authenticateApiKey, async (req, res) => {
     res.json({
       logs,
       count: logs.length,
-      filters: { pid, packageName, level }
+      filters: { pid: pid ? Number(pid) : undefined, packageName, level: safeLevel }
     });
   } catch (error) {
     res.status(500).json({

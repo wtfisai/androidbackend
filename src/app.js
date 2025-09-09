@@ -32,10 +32,21 @@ app.use(helmet());
 app.use(compression());
 
 // Middleware - CORS first to handle preflight requests
+const allowedOrigins = Array.isArray(config.allowedOrigins)
+  ? config.allowedOrigins
+  : [String(config.allowedOrigins || '*')];
+
+const useWildcard = allowedOrigins.includes('*');
+
 app.use(
   cors({
-    origin: config.allowedOrigins,
-    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // non-browser or same-origin
+      if (useWildcard || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('CORS origin not allowed'));
+    },
+    // Disallow credentials with wildcard origins to avoid security risks
+    credentials: useWildcard ? false : true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-api-key']
   })
