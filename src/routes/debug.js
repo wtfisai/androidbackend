@@ -394,28 +394,62 @@ router.post('/attach-gdb', authenticateApiKey, async (req, res) => {
     return res.status(400).json({ error: 'PID is required' });
   }
 
+  // Validate PID is a positive integer
+  const pidNum = parseInt(pid);
+  if (!Number.isInteger(pidNum) || pidNum <= 0) {
+    return res.status(400).json({ error: 'PID must be a positive integer' });
+  }
+
+  // Validate commands array
+  if (!Array.isArray(commands)) {
+    return res.status(400).json({ error: 'Commands must be an array' });
+  }
+
+  // Whitelist of allowed GDB commands for security
+  const allowedCommands = [
+    'info registers', 'info threads', 'backtrace', 'bt', 'list', 'print', 'x',
+    'disassemble', 'break', 'continue', 'step', 'next', 'finish', 'return',
+    'info breakpoints', 'info variables', 'info functions', 'info locals',
+    'set pagination off', 'set print pretty on', 'set print array on'
+  ];
+
+  // Filter and validate commands
+  const safeCommands = commands.filter(cmd => {
+    if (typeof cmd !== 'string') return false;
+    const trimmedCmd = cmd.trim().toLowerCase();
+    return allowedCommands.some(allowed => trimmedCmd.startsWith(allowed.toLowerCase()));
+  });
+
   try {
-    // Create GDB commands file
-    const gdbCmdsFile = `/tmp/gdb_commands_${Date.now()}.txt`;
+    // Create GDB commands file with safe filename
+    const timestamp = Date.now();
+    const gdbCmdsFile = `/tmp/gdb_commands_${timestamp}_${pidNum}.txt`;
+    
     const gdbCommands = [
       'set pagination off',
       'info registers',
       'info threads',
       'backtrace',
-      ...commands,
+      ...safeCommands,
       'detach',
       'quit'
     ].join('\n');
 
-    await execAsync(`echo "${gdbCommands}" > ${gdbCmdsFile}`);
+    // Use fs.writeFileSync instead of shell command to avoid injection
+    const fs = require('fs');
+    fs.writeFileSync(gdbCmdsFile, gdbCommands, { mode: 0o600 });
 
-    // Run GDB
-    const { stdout, stderr } = await execAsync(`gdb -p ${pid} -batch -x ${gdbCmdsFile} 2>&1`, {
+    // Run GDB with validated PID
+    const { stdout, stderr } = await execAsync(`gdb -p ${pidNum} -batch -x ${gdbCmdsFile} 2>&1`, {
       maxBuffer: 1024 * 1024 * 5
     });
 
     // Clean up
-    await execAsync(`rm -f ${gdbCmdsFile}`);
+    try {
+      fs.unlinkSync(gdbCmdsFile);
+    } catch (cleanupError) {
+      console.warn('Failed to cleanup GDB commands file:', cleanupError.message);
+    }
 
     // Parse GDB output
     const output = stdout + stderr;

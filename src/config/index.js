@@ -6,7 +6,14 @@ dotenv.config();
 
 const config = {
   port: process.env.PORT || 3000,
-  apiKey: process.env.API_KEY || 'diagnostic-api-key-2024',
+  apiKey: process.env.API_KEY || (() => {
+    // Generate a secure random API key if none provided
+    const crypto = require('crypto');
+    const randomKey = crypto.randomBytes(32).toString('hex');
+    console.warn(`⚠️  WARNING: No API_KEY environment variable set. Using generated key: ${randomKey}`);
+    console.warn(`⚠️  Set API_KEY environment variable for production use!`);
+    return randomKey;
+  })(),
   nodeEnv: process.env.NODE_ENV || 'development',
   allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || ['*'],
   rateLimit: {
