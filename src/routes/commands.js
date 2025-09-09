@@ -4,6 +4,7 @@ const { promisify } = require('util');
 const config = require('../config');
 const { authenticate } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { assertSafeString } = require('../utils/input-sanitizer');
 
 const router = express.Router();
 const execAsync = promisify(exec);
@@ -65,6 +66,16 @@ router.post(
     if (!command) {
       return res.status(400).json({
         error: 'Command is required'
+      });
+    }
+
+    // Sanitize command input to prevent injection
+    try {
+      assertSafeString('command', command);
+    } catch (error) {
+      return res.status(400).json({
+        error: 'Invalid command format',
+        message: error.message
       });
     }
 
