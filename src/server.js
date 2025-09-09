@@ -57,4 +57,8 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-module.exports = server;
+// Export the Express app instance so that test suites (e.g. supertest) can use it directly.
+// The underlying HTTP server is still accessible via app.server if needed.
+app.server = server;
+
+module.exports = app;

@@ -1321,7 +1321,11 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
 
     let command = `timeout ${duration} tcpdump -i ${interface} -c ${maxPackets} -nn -tttt -vvv`;
     if (filter) {
-      command += ` '${filter}'`;
+      // Sanitize filter expression to avoid shell metacharacters
+      const safeFilter = String(filter).slice(0, 100);
+      const { assertSafeString } = require('../../utils/input-sanitizer');
+      assertSafeString('filter', safeFilter);
+      command += ` '${safeFilter}'`;
     }
     command += ` > ${filepath} 2>&1`;
 

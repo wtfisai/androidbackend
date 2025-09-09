@@ -8,7 +8,11 @@ const config = {
   port: process.env.PORT || 3000,
   apiKey: process.env.API_KEY || 'diagnostic-api-key-2024',
   nodeEnv: process.env.NODE_ENV || 'development',
-  allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || ['*'],
+  // If ALLOWED_ORIGINS is not defined we default to '*', otherwise we split the comma-separated list.
+  // Express-CORS treats the string '*' as a proper wildcard, but *not* an array containing it.
+  allowedOrigins: process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : '*',
   rateLimit: {
     windowMs: 60000, // 1 minute
     maxRequests: 100
