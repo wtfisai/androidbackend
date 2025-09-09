@@ -11,9 +11,9 @@ const server = app.listen(config.port, '0.0.0.0', () => {
 ║  Server running on: http://0.0.0.0:${config.port}                    ║
 ║  Environment: ${config.nodeEnv.padEnd(45)}║
 ║                                                            ║
-║  API Key: ${config.apiKey.substring(0, 20)}...                         ║
+║  API Key: [hidden]                                         ║
 ║                                                            ║
-║  Save this API key to connect from Windows 11!            ║
+║  Save your API key to connect from Windows 11.            ║
 ║                                                            ║
 ║  To find your device IP for remote connection:            ║
 ║  Run: ip addr show wlan0                                  ║
