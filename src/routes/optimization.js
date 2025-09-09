@@ -5,6 +5,36 @@ const { authenticateApiKey } = require('../middleware/auth');
 const { ProcessLog } = require('../models/Activity');
 const execAsync = promisify(exec);
 
+// Process lock mechanism to prevent race conditions
+const processLocks = new Map();
+
+function acquireProcessLock(pid) {
+  const key = String(pid);
+  if (processLocks.has(key)) {
+    return false; // Process is already locked
+  }
+  processLocks.set(key, Date.now());
+  return true;
+}
+
+function releaseProcessLock(pid) {
+  const key = String(pid);
+  processLocks.delete(key);
+}
+
+// Cleanup stale locks (older than 30 seconds)
+setInterval(() => {
+  const now = Date.now();
+  const staleThreshold = 30000; // 30 seconds
+  
+  for (const [pid, timestamp] of processLocks.entries()) {
+    if (now - timestamp > staleThreshold) {
+      processLocks.delete(pid);
+      console.warn(`Released stale process lock for PID ${pid}`);
+    }
+  }
+}, 15000); // Check every 15 seconds
+
 // Helper function to get process info
 async function getProcessInfo(pid) {
   try {
@@ -52,6 +82,15 @@ async function getProcessResources(pid) {
 router.put('/process/:pid/sleep', authenticateApiKey, async (req, res) => {
   const { pid } = req.params;
   const { aggressive = false } = req.body;
+
+  // Acquire process lock to prevent race conditions
+  if (!acquireProcessLock(pid)) {
+    return res.status(409).json({
+      error: 'Process operation in progress',
+      message: `Another operation is currently being performed on process ${pid}`,
+      pid
+    });
+  }
 
   try {
     // Get current process state
@@ -116,12 +155,24 @@ router.put('/process/:pid/sleep', authenticateApiKey, async (req, res) => {
       error: 'Failed to suspend process',
       message: error.message
     });
+  } finally {
+    // Always release the lock
+    releaseProcessLock(pid);
   }
 });
 
 // PUT /api/optimize/process/:pid/wake
 router.put('/process/:pid/wake', authenticateApiKey, async (req, res) => {
   const { pid } = req.params;
+
+  // Acquire process lock to prevent race conditions
+  if (!acquireProcessLock(pid)) {
+    return res.status(409).json({
+      error: 'Process operation in progress',
+      message: `Another operation is currently being performed on process ${pid}`,
+      pid
+    });
+  }
 
   try {
     // Get current process state
@@ -181,6 +232,9 @@ router.put('/process/:pid/wake', authenticateApiKey, async (req, res) => {
       error: 'Failed to resume process',
       message: error.message
     });
+  } finally {
+    // Always release the lock
+    releaseProcessLock(pid);
   }
 });
 
@@ -200,11 +254,22 @@ router.post('/batch', authenticateApiKey, async (req, res) => {
 
   for (const pid of pids) {
     try {
-      const processBefore = await getProcessInfo(pid);
-      if (!processBefore) {
-        results.push({ pid, status: 'not_found' });
+      // Try to acquire lock for this process
+      if (!acquireProcessLock(pid)) {
+        results.push({ 
+          pid, 
+          status: 'skipped', 
+          reason: 'Process operation in progress' 
+        });
         continue;
       }
+
+      try {
+        const processBefore = await getProcessInfo(pid);
+        if (!processBefore) {
+          results.push({ pid, status: 'not_found' });
+          continue;
+        }
 
       const resourcesBefore = await getProcessResources(pid);
 
@@ -249,15 +314,19 @@ router.post('/batch', authenticateApiKey, async (req, res) => {
         memoryAfter: resourcesAfter.memory
       });
 
-      results.push({
-        pid,
-        status: 'success',
-        name: processBefore.comm,
-        resourcesSaved: {
-          cpu: resourcesBefore.cpu - resourcesAfter.cpu,
-          memory: resourcesBefore.memory - resourcesAfter.memory
-        }
-      });
+        results.push({
+          pid,
+          status: 'success',
+          name: processBefore.comm,
+          resourcesSaved: {
+            cpu: resourcesBefore.cpu - resourcesAfter.cpu,
+            memory: resourcesBefore.memory - resourcesAfter.memory
+          }
+        });
+      } finally {
+        // Release lock for this process
+        releaseProcessLock(pid);
+      }
     } catch (error) {
       results.push({
         pid,
