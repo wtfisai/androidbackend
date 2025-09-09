@@ -4,6 +4,7 @@ const { promisify } = require('util');
 const config = require('../config');
 const { authenticate } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { assertSafeString, safeInt } = require('../utils/input-sanitizer');
 
 const router = express.Router();
 const execAsync = promisify(exec);
@@ -19,6 +20,13 @@ router.post(
       return res.status(400).json({
         error: 'Command is required'
       });
+    }
+
+    // Basic safety check against shell metacharacters
+    try {
+      assertSafeString('adb command', String(command).slice(0, 500));
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
     }
 
     // Check if command is safe
@@ -76,6 +84,13 @@ router.post(
       });
     }
 
+    // Disallow shell metacharacters to prevent injection
+    try {
+      assertSafeString('shell command', String(command).slice(0, 500));
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+
     try {
       const { stdout, stderr } = await execAsync(command, {
         timeout: config.shell.timeout,
@@ -105,7 +120,26 @@ router.get(
   asyncHandler(async (req, res) => {
     const { lines = 100, filter = '' } = req.query;
 
-    const command = filter ? `logcat -d -t ${lines} ${filter}` : `logcat -d -t ${lines}`;
+    let numLines;
+    try {
+      numLines = safeInt('lines', lines, { min: 1, max: 5000 });
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+
+    if (filter) {
+      try {
+        // Limit filter length and forbid shell metacharacters
+        const f = String(filter).slice(0, 64);
+        assertSafeString('filter', f);
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
+    }
+
+    const command = filter
+      ? `logcat -d -t ${numLines} ${filter}`
+      : `logcat -d -t ${numLines}`;
 
     try {
       const { stdout } = await execAsync(command, {

@@ -6,6 +6,7 @@ const path = require('path');
 const { authenticateApiKey } = require('../middleware/auth');
 const { Activity } = require('../models/Activity');
 const { DebugSession } = require('../models/DebugSession');
+const { assertSafeString, safeIdentifier, safeInt } = require('../utils/input-sanitizer');
 const execAsync = promisify(exec);
 
 // Store active processes for real-time monitoring
@@ -102,29 +103,59 @@ router.post('/logcat/start', authenticateApiKey, async (req, res) => {
       sessionId
     } = req.body;
 
-    let command = `logcat -v ${format} -b ${buffer}`;
+    const allowedFormats = ['brief', 'long', 'process', 'raw', 'tag', 'thread', 'threadtime', 'time'];
+    const allowedLevels = ['V', 'D', 'I', 'W', 'E', 'F'];
+    const allowedBuffers = ['main', 'system', 'radio', 'events', 'crash', 'all'];
 
-    if (level !== 'V') {
-      command += ` *:${level}`;
+    const fmt = allowedFormats.includes(String(format)) ? String(format) : 'threadtime';
+    const lvl = allowedLevels.includes(String(level)) ? String(level) : 'V';
+    const buf = allowedBuffers.includes(String(buffer)) ? String(buffer) : 'main';
+
+    let command = `logcat -v ${fmt} -b ${buf}`;
+
+    if (lvl !== 'V') {
+      command += ` *:${lvl}`;
     }
 
     if (tag) {
-      command += ` ${tag}:*`;
+      try {
+        const safeTag = safeIdentifier('tag', tag, /^[A-Za-z0-9._-]{1,50}$/);
+        command += ` ${safeTag}:*`;
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
     }
 
     if (packageFilter) {
-      const { stdout: pid } = await execAsync(`pidof ${packageFilter}`).catch(() => ({
-        stdout: ''
-      }));
-      if (pid) {
-        command += ` --pid=${pid.trim()}`;
+      try {
+        const safePkg = safeIdentifier('package', packageFilter, /^[A-Za-z0-9._-]{1,100}$/);
+        const { stdout: pid } = await execAsync(`pidof ${safePkg}`).catch(() => ({ stdout: '' }));
+        if (pid) {
+          command += ` --pid=${pid.trim()}`;
+        }
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
       }
     }
 
     if (regex) {
-      command += ` | grep -E "${regex}"`;
+      try {
+        const r = String(regex).slice(0, 64);
+        assertSafeString('regex', r);
+        const escaped = r.replace(/"/g, '\\"');
+        command += ` | grep -E "${escaped}"`;
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
     } else if (filter) {
-      command += ` | grep "${filter}"`;
+      try {
+        const f = String(filter).slice(0, 64);
+        assertSafeString('filter', f);
+        const escaped = f.replace(/"/g, '\\"');
+        command += ` | grep "${escaped}"`;
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
     }
 
     const processId = streamCommand(command, sessionId);
@@ -540,7 +571,23 @@ router.get('/dumpsys/:service', authenticateApiKey, async (req, res) => {
     const { service } = req.params;
     const { args = '', sessionId } = req.query;
 
-    const command = `dumpsys ${service} ${args} | head -500`;
+    let safeService;
+    try {
+      safeService = safeIdentifier('service', service, /^[A-Za-z0-9._-]{1,50}$/);
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+
+    let sanitizedArgs = '';
+    if (args) {
+      const a = String(args).slice(0, 100);
+      if (/[^\w\s\-_.:/]/.test(a)) {
+        return res.status(400).json({ error: 'Invalid args for dumpsys' });
+      }
+      sanitizedArgs = ` ${a}`;
+    }
+
+    const command = `dumpsys ${safeService}${sanitizedArgs} | head -500`;
     const result = await executeAndLog(command, sessionId);
 
     await Activity.log({
@@ -594,15 +641,23 @@ router.post('/adb/forward', authenticateApiKey, async (req, res) => {
   try {
     const { localPort, remotePort, remove = false, sessionId } = req.body;
 
-    if (!localPort || !remotePort) {
+    if (localPort === undefined || remotePort === undefined) {
       return res.status(400).json({ error: 'Local and remote ports required' });
+    }
+
+    let lp, rp;
+    try {
+      lp = safeInt('localPort', localPort, { min: 1, max: 65535 });
+      rp = safeInt('remotePort', remotePort, { min: 1, max: 65535 });
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
     }
 
     let command;
     if (remove) {
-      command = `adb forward --remove tcp:${localPort}`;
+      command = `adb forward --remove tcp:${lp}`;
     } else {
-      command = `adb forward tcp:${localPort} tcp:${remotePort}`;
+      command = `adb forward tcp:${lp} tcp:${rp}`;
     }
 
     const result = await executeAndLog(command, sessionId);
