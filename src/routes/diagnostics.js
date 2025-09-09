@@ -5,13 +5,18 @@ const dns = require('dns');
 const net = require('net');
 const { authenticateApiKey } = require('../middleware/auth');
 const { Activity } = require('../models/Activity');
+const { assertSafeString, safeInt } = require('../utils/input-sanitizer');
 const execAsync = promisify(exec);
 const dnsLookup = promisify(dns.lookup);
 
 // Helper function for ping test
 async function pingTest(host, count = 4) {
   try {
-    const { stdout } = await execAsync(`ping -c ${count} ${host}`);
+    // Sanitize inputs to prevent command injection
+    assertSafeString('host', host);
+    const safeCount = safeInt('count', count, { min: 1, max: 10 });
+    
+    const { stdout } = await execAsync(`ping -c ${safeCount} ${host}`);
     const lines = stdout.split('\n');
 
     // Parse ping statistics
@@ -58,7 +63,11 @@ async function pingTest(host, count = 4) {
 // Helper function for traceroute
 async function traceroute(host, maxHops = 30) {
   try {
-    const { stdout } = await execAsync(`traceroute -m ${maxHops} ${host}`);
+    // Sanitize inputs to prevent command injection
+    assertSafeString('host', host);
+    const safeMaxHops = safeInt('maxHops', maxHops, { min: 1, max: 50 });
+    
+    const { stdout } = await execAsync(`traceroute -m ${safeMaxHops} ${host}`);
     const lines = stdout.split('\n').filter((l) => l.trim());
     const hops = [];
 
@@ -277,6 +286,17 @@ router.post('/traceroute', authenticateApiKey, async (req, res) => {
     return res.status(400).json({ error: 'Host is required' });
   }
 
+  // Validate inputs before processing
+  try {
+    assertSafeString('host', host);
+    safeInt('maxHops', maxHops, { min: 1, max: 50 });
+  } catch (error) {
+    return res.status(400).json({ 
+      error: 'Invalid input', 
+      message: error.message 
+    });
+  }
+
   try {
     const result = await traceroute(host, maxHops);
 
@@ -330,6 +350,19 @@ router.post('/port-scan', authenticateApiKey, async (req, res) => {
   if (ports.length > 100) {
     return res.status(400).json({
       error: 'Maximum 100 ports allowed per scan'
+    });
+  }
+
+  // Validate inputs
+  try {
+    assertSafeString('host', host);
+    safeInt('timeout', timeout, { min: 100, max: 30000 });
+    // Validate each port number
+    ports.forEach(port => safeInt('port', port, { min: 1, max: 65535 }));
+  } catch (error) {
+    return res.status(400).json({ 
+      error: 'Invalid input', 
+      message: error.message 
     });
   }
 
