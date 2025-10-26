@@ -24,7 +24,10 @@ module.exports = [
     },
     rules: {
       'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_|^e$|^e2$|^error$|^err$' }],
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_|^e$|^e2$|^error$|^err$' }
+      ],
       'prefer-const': 'error',
       'no-var': 'error',
       eqeqeq: ['error', 'always'],
@@ -107,7 +110,10 @@ module.exports = [
       }
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_|^e$|^error$' }]
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_|^e$|^error$' }
+      ]
     }
   }
 ];
