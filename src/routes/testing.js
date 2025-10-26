@@ -322,7 +322,7 @@ router.post('/instrumented/run', authenticateApiKey, async (req, res) => {
       testRunner = 'androidx.test.runner.AndroidJUnitRunner',
       testClass,
       testMethod,
-      arguments = {}
+      testArguments = {}
     } = req.body;
 
     if (!testPackage) {
@@ -341,7 +341,7 @@ router.post('/instrumented/run', authenticateApiKey, async (req, res) => {
     }
 
     // Add custom arguments
-    for (const [key, value] of Object.entries(arguments)) {
+    for (const [key, value] of Object.entries(testArguments)) {
       command += ` -e ${key} ${value}`;
     }
 

@@ -98,13 +98,14 @@ router.post('/touch', authenticateApiKey, async (req, res) => {
       case 'tap':
         command = `input tap ${x} ${y}`;
         break;
-      case 'swipe':
+      case 'swipe': {
         const { endX, endY } = req.body;
         if (!endX || !endY) {
           return res.status(400).json({ error: 'End coordinates required for swipe' });
         }
         command = `input swipe ${x} ${y} ${endX} ${endY} ${duration || 300}`;
         break;
+      }
       case 'longpress':
         command = `input swipe ${x} ${y} ${x} ${y} ${duration || 1000}`;
         break;

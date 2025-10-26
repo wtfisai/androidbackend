@@ -219,7 +219,9 @@ router.get('/database/list', authenticateApiKey, async (req, res) => {
       try {
         const statResult = await executeAndLog(`stat -c %s "${db.path}" 2>/dev/null`, sessionId);
         db.size = parseInt(statResult.stdout) || 0;
-      } catch {}
+      } catch (err) {
+        // Ignore stat errors for individual databases
+      }
     }
 
     await Activity.log({
@@ -1255,7 +1257,7 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
   try {
     const {
       duration = 10,
-      interface = 'any',
+      networkInterface = 'any',
       filter = '',
       maxPackets = 1000,
       sessionId
@@ -1264,7 +1266,7 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
     const filename = `packets_${Date.now()}.txt`;
     const filepath = `/data/local/tmp/${filename}`;
 
-    let command = `timeout ${duration} tcpdump -i ${interface} -c ${maxPackets} -nn -tttt -vvv`;
+    let command = `timeout ${duration} tcpdump -i ${networkInterface} -c ${maxPackets} -nn -tttt -vvv`;
     if (filter) {
       command += ` '${filter}'`;
     }
@@ -1277,12 +1279,14 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
     try {
       const readResult = await executeAndLog(`cat ${filepath}`, sessionId);
       capturedData = readResult.stdout;
-    } catch {}
+    } catch (err) {
+      // Ignore read errors
+    }
 
     await Activity.log({
       type: 'debug_tools',
       action: 'export_packets',
-      metadata: { duration, interface, filter, filename }
+      metadata: { duration, networkInterface, filter, filename }
     });
 
     res.json({
