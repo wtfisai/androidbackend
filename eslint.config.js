@@ -4,7 +4,7 @@ module.exports = [
   js.configs.recommended,
   {
     files: ['**/*.js'],
-    ignores: ['public/**/*.js'],
+    ignores: ['public/**/*.js', '**/*.test.js', '**/*.spec.js'],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: 'commonjs',
@@ -24,7 +24,10 @@ module.exports = [
     },
     rules: {
       'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_|^e$|^e2$|^error$|^err$' }
+      ],
       'prefer-const': 'error',
       'no-var': 'error',
       eqeqeq: ['error', 'always'],
@@ -53,6 +56,7 @@ module.exports = [
         document: 'readonly',
         window: 'readonly',
         localStorage: 'readonly',
+        sessionStorage: 'readonly',
         fetch: 'readonly',
         location: 'readonly',
         prompt: 'readonly',
@@ -60,7 +64,12 @@ module.exports = [
         confirm: 'readonly',
         navigator: 'readonly',
         HTMLElement: 'readonly',
-        Event: 'readonly'
+        Event: 'readonly',
+        CustomEvent: 'readonly',
+        MouseEvent: 'readonly',
+        Image: 'readonly',
+        bootstrap: 'readonly',
+        module: 'writable'
       }
     },
     rules: {
@@ -69,12 +78,42 @@ module.exports = [
         'error',
         {
           argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_|^e$|^e2$|^error$',
           varsIgnorePattern:
-            '^(handleCommandKey|loadDeviceProperties|loadProcesses|loadPackages|loadStorageInfo|loadLogs)$'
+            '^(handleCommandKey|loadDeviceProperties|loadProcesses|loadPackages|loadStorageInfo|loadLogs|sendKey|sendText|takeScreenshot|toggleRecording|rotateScreen|toggleNotifications|launchSelectedApp|toggleFullscreen|toggleSettings|saveSettings|refreshRate|startTime)$'
         }
       ],
       'prefer-const': 'error',
       'no-var': 'error'
+    }
+  },
+  // Jest/Test environment
+  {
+    files: ['**/*.test.js', '**/*.spec.js'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'commonjs',
+      globals: {
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        test: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        process: 'readonly',
+        console: 'readonly'
+      }
+    },
+    rules: {
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_|^e$|^error$' }
+      ]
     }
   }
 ];
