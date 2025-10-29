@@ -161,7 +161,7 @@ router.post('/start', authenticateApiKey, async (req, res) => {
     if (options.memory || options.cpu) {
       const monitoringInterval = setInterval(async () => {
         const activeSession = activeSessions.get(session.sessionId);
-        if (!activeSession || activeSession.status === 'stopped') {
+        if (!activeSession || activeSession.status === 'stopped' || activeSession.status === 'stopping') {
           clearInterval(monitoringInterval);
           return;
         }
@@ -245,28 +245,39 @@ router.post('/stop', authenticateApiKey, async (req, res) => {
     const session = activeSessions.get(sessionId);
 
     if (session) {
+      // Mark session as stopping to prevent race conditions
+      session.status = 'stopping';
+      
+      // Stop monitoring interval first to prevent new operations
+      if (session.monitoringInterval) {
+        clearInterval(session.monitoringInterval);
+        session.monitoringInterval = null;
+      }
+
       // Stop strace if running
       if (session.stracePid) {
         try {
           await execAsync(`kill ${session.stracePid}`);
+          // Wait a moment for the process to terminate
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (e) {
           // Strace might have already stopped
         }
-      }
-
-      // Stop monitoring interval
-      if (session.monitoringInterval) {
-        clearInterval(session.monitoringInterval);
+        session.stracePid = null;
       }
 
       // Clean up log files after reading final data
       if (session.straceOutput) {
-        const traces = await parseStraceOutput(session.straceOutput, 1000);
-        for (const trace of traces.slice(0, 100)) {
-          await DebugTrace.addTrace(sessionId, {
-            type: 'syscall',
-            ...trace
-          });
+        try {
+          const traces = await parseStraceOutput(session.straceOutput, 1000);
+          for (const trace of traces.slice(0, 100)) {
+            await DebugTrace.addTrace(sessionId, {
+              type: 'syscall',
+              ...trace
+            });
+          }
+        } catch (e) {
+          // Ignore errors when reading traces
         }
 
         // Clean up
@@ -275,8 +286,10 @@ router.post('/stop', authenticateApiKey, async (req, res) => {
         } catch (e) {
           // File might not exist
         }
+        session.straceOutput = null;
       }
 
+      // Remove from active sessions
       activeSessions.delete(sessionId);
     }
 

@@ -5,6 +5,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { authenticateApiKey } = require('../middleware/auth');
 const { Activity } = require('../models/Activity');
+const { assertSafeString, safeInt, safeIdentifier, safeUrl } = require('../utils/input-sanitizer');
 const execAsync = promisify(exec);
 
 // Helper function to check if ADB is available
@@ -37,21 +38,28 @@ router.get('/logcat', authenticateApiKey, async (req, res) => {
     }
 
     // Build logcat command
-    let command = `logcat -d -v ${format}`;
+    const allowedFormats = ['brief', 'long', 'process', 'raw', 'tag', 'thread', 'threadtime', 'time'];
+    const allowedLevels = ['V', 'D', 'I', 'W', 'E', 'F'];
+    const fmt = allowedFormats.includes(String(format)) ? String(format) : 'threadtime';
+    const lvl = allowedLevels.includes(String(level)) ? String(level) : 'V';
+    const maxLines = safeInt('lines', lines, { min: 1, max: 5000 });
+    let command = `logcat -d -v ${fmt}`;
 
     // Add log level filter
-    if (level !== 'V') {
-      command += ` *:${level}`;
+    if (lvl !== 'V') {
+      command += ` *:${lvl}`;
     }
 
     // Add tag filter
     if (tag) {
-      command += ` ${tag}:*`;
+      const safeTag = safeIdentifier('tag', tag, /^[A-Za-z0-9._-]{1,50}$/);
+      command += ` ${safeTag}:*`;
     }
 
     // Add package filter if specified
     if (packageFilter) {
-      const { stdout: pid } = await execAsync(`pidof ${packageFilter}`).catch(() => ({
+      const safePkg = safeIdentifier('package', packageFilter, /^[A-Za-z0-9._-]{1,100}$/);
+      const { stdout: pid } = await execAsync(`pidof ${safePkg}`).catch(() => ({
         stdout: ''
       }));
       if (pid) {
@@ -61,11 +69,13 @@ router.get('/logcat', authenticateApiKey, async (req, res) => {
 
     // Add general filter
     if (filter) {
-      command += ` | grep "${filter}"`;
+      const f = String(filter).slice(0, 64);
+      assertSafeString('filter', f);
+      command += ` | grep "${f}"`;
     }
 
     // Limit lines
-    command += ` | tail -n ${lines}`;
+    command += ` | tail -n ${maxLines}`;
 
     const { stdout } = await execAsync(command);
 
@@ -105,6 +115,9 @@ router.get('/logcat', authenticateApiKey, async (req, res) => {
       filters: { level, format, packageFilter, tag, filter }
     });
   } catch (error) {
+    if (error.code === 'UNSAFE_INPUT' || error.code === 'INVALID_INPUT') {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({
       error: 'Failed to get logcat',
       message: error.message
@@ -222,7 +235,12 @@ router.get('/dumpsys/:service', authenticateApiKey, async (req, res) => {
     // Build dumpsys command
     let command = `dumpsys ${service}`;
     if (args) {
-      command += ` ${args}`;
+      const a = String(args).slice(0, 100);
+      // allow only simple flags/words (no metacharacters)
+      if (/[^\w\s\-_.:/]/.test(a)) {
+        return res.status(400).json({ error: 'Invalid args for dumpsys' });
+      }
+      command += ` ${a}`;
     }
 
     const { stdout } = await execAsync(command, { maxBuffer: 1024 * 1024 * 10 });
@@ -262,6 +280,9 @@ router.get('/dumpsys/:service', authenticateApiKey, async (req, res) => {
       data: parsedData
     });
   } catch (error) {
+    if (error.code === 'UNSAFE_INPUT' || error.code === 'INVALID_INPUT') {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({
       error: 'Failed to run dumpsys',
       message: error.message
@@ -283,11 +304,22 @@ router.post('/screenrecord', authenticateApiKey, async (req, res) => {
     const outputPath = `/sdcard/screenrecord_${timestamp}.mp4`;
 
     // Build screenrecord command
-    let command = 'screenrecord';
-    command += ` --time-limit ${Math.min(duration, 180)}`;
-    command += ` --bit-rate ${bitrate}`;
+    const dur = safeInt('duration', duration, { min: 1, max: 180 });
+    const br = safeInt('bitrate', bitrate, { min: 100000, max: 50000000 });
+    let sz;
     if (size) {
-      command += ` --size ${size}`;
+      const s = String(size);
+      if (!/^\d{2,4}x\d{2,4}$/.test(s)) {
+        return res.status(400).json({ error: 'Invalid size format. Use WIDTHxHEIGHT' });
+      }
+      sz = s;
+    }
+
+    let command = 'screenrecord';
+    command += ` --time-limit ${dur}`;
+    command += ` --bit-rate ${br}`;
+    if (sz) {
+      command += ` --size ${sz}`;
     }
     if (rotate) {
       command += ' --rotate';
@@ -318,6 +350,9 @@ router.post('/screenrecord', authenticateApiKey, async (req, res) => {
       willFinishAt: new Date(Date.now() + duration * 1000)
     });
   } catch (error) {
+    if (error.code === 'UNSAFE_INPUT' || error.code === 'INVALID_INPUT') {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({
       error: 'Failed to start screen recording',
       message: error.message
@@ -333,7 +368,8 @@ router.post('/screenshot', authenticateApiKey, async (req, res) => {
     const outputPath = `/sdcard/screenshot_${timestamp}.png`;
 
     // Take screenshot
-    await execAsync(`screencap -p -d ${display} ${outputPath}`);
+    const disp = safeInt('display', display, { min: 0, max: 10 });
+    await execAsync(`screencap -p -d ${disp} ${outputPath}`);
 
     // Get file info
     const { stdout } = await execAsync(`ls -la ${outputPath}`);
@@ -353,6 +389,9 @@ router.post('/screenshot', authenticateApiKey, async (req, res) => {
       timestamp: new Date(timestamp)
     });
   } catch (error) {
+    if (error.code === 'UNSAFE_INPUT' || error.code === 'INVALID_INPUT') {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({
       error: 'Failed to take screenshot',
       message: error.message
@@ -581,6 +620,16 @@ router.post('/intent', authenticateApiKey, async (req, res) => {
       });
     }
 
+    // Validate
+    if (action) assertSafeString('action', action);
+    if (component) {
+      // android component format: package/ClassName
+      safeIdentifier('component', component, /^[A-Za-z0-9._-]+\/[A-Za-z0-9.$_/-]+$/);
+    }
+    const safeData = data ? safeUrl('data', data) : undefined;
+    if (category) safeIdentifier('category', category, /^[A-Za-z0-9._-]+$/);
+    const safeUser = safeIdentifier('user', user, /^(current|\d{1,3})$/);
+
     // Build am command
     let command = 'am';
 
@@ -594,7 +643,7 @@ router.post('/intent', authenticateApiKey, async (req, res) => {
     }
 
     // Add user
-    command += ` --user ${user}`;
+    command += ` --user ${safeUser}`;
 
     // Add action
     if (action) {
@@ -607,8 +656,8 @@ router.post('/intent', authenticateApiKey, async (req, res) => {
     }
 
     // Add data URI
-    if (data) {
-      command += ` -d "${data}"`;
+    if (safeData) {
+      command += ` -d "${safeData}"`;
     }
 
     // Add category
@@ -618,22 +667,25 @@ router.post('/intent', authenticateApiKey, async (req, res) => {
 
     // Add extras
     for (const [key, value] of Object.entries(extras)) {
+      const k = safeIdentifier('extra key', key, /^[A-Za-z0-9._-]{1,40}$/);
       if (typeof value === 'string') {
-        command += ` --es ${key} "${value}"`;
+        assertSafeString('extra value', value);
+        command += ` --es ${k} "${value}"`;
       } else if (typeof value === 'number') {
         if (Number.isInteger(value)) {
-          command += ` --ei ${key} ${value}`;
+          command += ` --ei ${k} ${value}`;
         } else {
-          command += ` --ef ${key} ${value}`;
+          command += ` --ef ${k} ${value}`;
         }
       } else if (typeof value === 'boolean') {
-        command += ` --ez ${key} ${value}`;
+        command += ` --ez ${k} ${value}`;
       }
     }
 
     // Add flags
     for (const flag of flags) {
-      command += ` -f ${flag}`;
+      const f = safeInt('flag', flag, { min: 0, max: 0xFFFFFFFF });
+      command += ` -f ${f}`;
     }
 
     const { stdout, stderr } = await execAsync(command);
@@ -651,6 +703,9 @@ router.post('/intent', authenticateApiKey, async (req, res) => {
       timestamp: new Date()
     });
   } catch (error) {
+    if (error.code === 'UNSAFE_INPUT' || error.code === 'INVALID_INPUT') {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({
       error: 'Failed to send intent',
       message: error.message

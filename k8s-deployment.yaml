@@ -77,9 +77,14 @@ spec:
         volumeMounts:
         - name: logs
           mountPath: /app/logs
+        - name: app-data
+          mountPath: /app/data
       volumes:
       - name: logs
         emptyDir: {}
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: android-api-data
 ---
 apiVersion: v1
 kind: Service
@@ -89,7 +94,7 @@ metadata:
 spec:
   selector:
     app: android-api
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 80
     targetPort: 3000
@@ -129,7 +134,9 @@ metadata:
   namespace: android-api
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-burst: "200"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
 spec:
   ingressClassName: nginx
   rules:
@@ -143,3 +150,15 @@ spec:
             name: android-api-service
             port:
               number: 80
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: android-api-data
+  namespace: android-api
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
