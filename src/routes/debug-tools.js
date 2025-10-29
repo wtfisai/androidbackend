@@ -219,7 +219,9 @@ router.get('/database/list', authenticateApiKey, async (req, res) => {
       try {
         const statResult = await executeAndLog(`stat -c %s "${db.path}" 2>/dev/null`, sessionId);
         db.size = parseInt(statResult.stdout) || 0;
-      } catch {}
+      } catch (err) {
+        // Ignore stat errors for individual databases
+      }
     }
 
     await Activity.log({
@@ -1255,7 +1257,7 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
   try {
     const {
       duration = 10,
-      interface = 'any',
+      networkInterface = 'any',
       filter = '',
       maxPackets = 1000,
       sessionId
@@ -1264,7 +1266,7 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
     const filename = `packets_${Date.now()}.txt`;
     const filepath = `/data/local/tmp/${filename}`;
 
-    let command = `timeout ${duration} tcpdump -i ${interface} -c ${maxPackets} -nn -tttt -vvv`;
+    let command = `timeout ${duration} tcpdump -i ${networkInterface} -c ${maxPackets} -nn -tttt -vvv`;
     if (filter) {
       command += ` '${filter}'`;
     }
@@ -1277,12 +1279,14 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
     try {
       const readResult = await executeAndLog(`cat ${filepath}`, sessionId);
       capturedData = readResult.stdout;
-    } catch {}
+    } catch (err) {
+      // Ignore read errors
+    }
 
     await Activity.log({
       type: 'debug_tools',
       action: 'export_packets',
-      metadata: { duration, interface, filter, filename }
+      metadata: { duration, networkInterface, filter, filename }
     });
 
     res.json({
@@ -1295,6 +1299,49 @@ router.post('/export/packets', authenticateApiKey, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// UI Automator dump endpoint
+router.post('/uiautomator/dump', authenticateApiKey, async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const timestamp = Date.now();
+    const filepath = `/sdcard/window_dump_${timestamp}.xml`;
+
+    // Run uiautomator dump command
+    const result = await executeAndLog(`uiautomator dump ${filepath}`, sessionId);
+
+    // Try to read the dumped file
+    let uiHierarchy = '';
+    try {
+      const readResult = await executeAndLog(`cat ${filepath}`, sessionId);
+      uiHierarchy = readResult.stdout;
+    } catch (e) {
+      // File might not be accessible
+      console.error('Could not read UI dump file:', e.message);
+    }
+
+    await Activity.log({
+      type: 'debug_tools',
+      action: 'ui_dump',
+      metadata: { filepath, sessionId }
+    });
+
+    res.json({
+      success: result.exitCode === 0,
+      filepath,
+      uiHierarchy: uiHierarchy.substring(0, 2000), // Send first 2000 chars
+      timestamp: new Date().toISOString(),
+      output: result.stdout
+    });
+  } catch (error) {
+    console.error('UI dump error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to dump UI',
+      message: error.message
+    });
   }
 });
 
